@@ -149,10 +149,6 @@ export const channelIntelligenceArchiveDialogTemplate = (vm) => vm.archiveDetail
                 <button class="channel-intelligence-dialog__close" data-channel-intelligence-action="close-archive-detail" type="button" aria-label="关闭">×</button>
             </header>
             <div class="channel-intelligence-dialog__body">
-                ${buildArchiveDetail(vm.archiveDialogArchive)}
-                ${vm.selectedArchiveViewOnlyLabel ? `
-                    <div class="channel-intelligence__archive-hint">${escapeHtml(vm.selectedArchiveViewOnlyLabel)}</div>
-                ` : ""}
                 <div class="channel-intelligence__archive-actions">
                     ${vm.canManageRound ? `
                         <button class="channel-intelligence__action-button is-quiet" data-channel-intelligence-action="rename-archive" type="button">改标题</button>
@@ -169,6 +165,10 @@ export const channelIntelligenceArchiveDialogTemplate = (vm) => vm.archiveDetail
                         <button class="channel-intelligence__action-button is-danger" data-channel-intelligence-action="delete-archive" type="button">删除记录</button>
                     ` : ""}
                 </div>
+                ${vm.selectedArchiveViewOnlyLabel ? `
+                    <div class="channel-intelligence__archive-hint">${escapeHtml(vm.selectedArchiveViewOnlyLabel)}</div>
+                ` : ""}
+                ${buildArchiveDetail(vm.archiveDialogArchive)}
                 <section class="channel-intelligence__section">
                     <h4 class="channel-intelligence__section-title">帖子与评论</h4>
                     ${buildArchivePosts(vm.archiveDialogArchive)}

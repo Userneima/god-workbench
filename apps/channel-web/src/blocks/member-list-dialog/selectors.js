@@ -9,37 +9,94 @@ const roleLabelByValue = {
 
 const getRoleLabel = (role) => roleLabelByValue[String(role || "member").trim()] || "成员";
 
-const dedupeDirectoryMembers = (members = []) => {
+const getDistinctRoleLabels = (roles = []) => {
+    const normalizedRoles = [...new Set(roles
+        .map((role) => String(role || "member").trim() || "member")
+        .filter(Boolean))]
+        .sort((left, right) => getChannelRolePriority(left) - getChannelRolePriority(right));
+
+    return normalizedRoles.map(getRoleLabel);
+};
+
+const shouldReplaceRepresentative = (candidate, current) => {
+    const candidatePriority = getChannelRolePriority(candidate?.role);
+    const currentPriority = getChannelRolePriority(current?.primaryRole);
+    if (candidatePriority !== currentPriority) {
+        return candidatePriority < currentPriority;
+    }
+
+    const candidateCreatedAt = Date.parse(candidate?.createdAt || 0);
+    const currentCreatedAt = Date.parse(current?.createdAt || 0);
+    if (candidateCreatedAt !== currentCreatedAt) {
+        return candidateCreatedAt > currentCreatedAt;
+    }
+
+    return String(candidate?.name || "").trim().length > String(current?.name || "").trim().length;
+};
+
+const aggregateDirectoryMembers = (members = []) => {
     const memberByKey = new Map();
 
     members.forEach((member, index) => {
         const userId = String(member?.userId || "").trim();
         const identityId = String(member?.identityId || "").trim();
+        const role = String(member?.role || "member").trim() || "member";
         const key = userId || identityId || `member-${index}`;
         const current = memberByKey.get(key);
 
         if (!current) {
-            memberByKey.set(key, member);
+            memberByKey.set(key, {
+                identityId: identityId || null,
+                identityIds: identityId ? [identityId] : [],
+                userId: userId || null,
+                name: member?.name || "频道成员",
+                avatar: member?.avatar || "",
+                primaryRole: role,
+                roles: [role],
+                createdAt: member?.createdAt || null
+            });
             return;
         }
 
-        const nextPriority = getChannelRolePriority(member?.role);
-        const currentPriority = getChannelRolePriority(current?.role);
-        if (nextPriority < currentPriority) {
-            memberByKey.set(key, member);
-            return;
+        if (identityId && !current.identityIds.includes(identityId)) {
+            current.identityIds.push(identityId);
+        }
+        if (!current.roles.includes(role)) {
+            current.roles.push(role);
         }
 
-        if (nextPriority === currentPriority) {
-            const nextCreatedAt = Date.parse(member?.createdAt || 0);
-            const currentCreatedAt = Date.parse(current?.createdAt || 0);
-            if (nextCreatedAt > currentCreatedAt) {
-                memberByKey.set(key, member);
-            }
+        if (shouldReplaceRepresentative(member, current)) {
+            current.identityId = identityId || current.identityId;
+            current.name = member?.name || current.name;
+            current.avatar = member?.avatar || current.avatar;
+            current.primaryRole = role;
+            current.createdAt = member?.createdAt || current.createdAt;
         }
     });
 
-    return [...memberByKey.values()];
+    return [...memberByKey.values()]
+        .map((member) => {
+            const roleLabels = getDistinctRoleLabels(member.roles);
+            return {
+                ...member,
+                roleLabels,
+                roleSummary: roleLabels.join(" · "),
+                primaryRoleLabel: getRoleLabel(member.primaryRole)
+            };
+        })
+        .sort((left, right) => {
+            const roleDelta = getChannelRolePriority(left.primaryRole) - getChannelRolePriority(right.primaryRole);
+            if (roleDelta !== 0) {
+                return roleDelta;
+            }
+
+            const createdAtDelta = Date.parse(left.createdAt || 0) - Date.parse(right.createdAt || 0);
+            if (createdAtDelta !== 0) {
+                return createdAtDelta;
+            }
+
+            return String(left.name || "").localeCompare(String(right.name || ""), "zh-Hans-CN");
+        });
 };
 
 const buildReadonlyMembers = (state) => {
@@ -78,23 +135,27 @@ const buildManageMembers = (state) => {
     const activeMemberId = state.membershipState.activeMemberId;
     const actionsLocked = state.membershipState.mutationStatus === "submitting";
 
-    return dedupeDirectoryMembers(state.membershipState.directoryItems || []).map((member) => {
-        const role = String(member.role || "member").trim() || "member";
-        const isCurrent = Boolean(member.identityId) && member.identityId === currentIdentityId;
+    return aggregateDirectoryMembers(state.membershipState.directoryItems || []).map((member) => {
+        const role = String(member.primaryRole || "member").trim() || "member";
+        const isCurrent = (Boolean(member.userId) && member.userId === state.authState.user?.id)
+            || member.identityIds.includes(currentIdentityId);
         const canPromote = currentRole === "owner" && role === "member" && !isCurrent;
         const canDemote = currentRole === "owner" && role === "admin" && !isCurrent;
         const canRemove = role === "member" && !isCurrent && ["owner", "admin"].includes(currentRole);
 
         return {
             identityId: member.identityId || null,
+            identityIds: member.identityIds,
             name: member.name,
             avatar: member.avatar,
             role,
-            roleLabel: getRoleLabel(role),
+            roleLabel: member.primaryRoleLabel,
+            roleLabels: member.roleLabels,
+            roleSummary: member.roleSummary,
             canPromote,
             canDemote,
             canRemove,
-            confirmRemove: pendingRemoveIdentityId === member.identityId,
+            confirmRemove: member.identityIds.includes(pendingRemoveIdentityId),
             isBusy: activeMemberId === member.identityId,
             actionsLocked
         };

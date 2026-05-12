@@ -50,9 +50,13 @@ const buildMemberItem = (member) => `
             <img alt="${escapeHtml(member.name)}" class="member-list-dialog__avatar" src="${member.avatar}" />
             <div class="member-list-dialog__copy">
                 <div class="member-list-dialog__name">${escapeHtml(member.name)}</div>
-                <div class="member-list-dialog__meta">${escapeHtml(member.roleLabel)}</div>
+                <div class="member-list-dialog__meta">${escapeHtml(member.roleSummary || member.roleLabel)}</div>
             </div>
-            <span class="member-list-dialog__role">${escapeHtml(member.roleLabel)}</span>
+            <div class="member-list-dialog__roles">
+                ${(member.roleLabels || [member.roleLabel]).map((roleLabel) => `
+                    <span class="member-list-dialog__role-badge">${escapeHtml(roleLabel)}</span>
+                `).join("")}
+            </div>
         </div>
         ${buildMemberActions(member)}
         ${buildRemoveConfirm(member)}

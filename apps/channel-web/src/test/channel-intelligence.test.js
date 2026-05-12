@@ -186,6 +186,8 @@ describe("channel intelligence block", () => {
 
         expect(dialogRoot.querySelector("[data-channel-intelligence-dialog='archive-detail']")).not.toBeNull();
         expect(dialogRoot.textContent).toContain("希望有人帮我整理玄学学习目录");
+        expect(dialogRoot.textContent).toContain("删除记录");
+        expect(dialogRoot.textContent).toContain("导出备份");
 
         root.remove();
         dialogRoot.remove();

@@ -612,7 +612,13 @@
 }
 
 .channel-intelligence__archive-actions {
-    margin-top: 0.7rem;
+    position: sticky;
+    top: -0.9rem;
+    z-index: 2;
+    margin: -0.9rem -1.1rem 0;
+    padding: 0.9rem 1.1rem 0.8rem;
+    background: linear-gradient(180deg, #1d1d1d 82%, rgba(29, 29, 29, 0.82));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .channel-intelligence__archive-hint {

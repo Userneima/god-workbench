@@ -156,7 +156,10 @@ describe("member list dialog", () => {
         const items = [...root.querySelectorAll(".member-list-dialog__item")];
         expect(items).toHaveLength(2);
         expect(root.textContent).toContain("Yuchao");
-        expect(root.textContent).not.toContain("章鱼烧成员");
+        expect(root.textContent).not.toContain("章鱼烧");
+        expect(items[0]?.querySelectorAll(".member-list-dialog__role-badge")).toHaveLength(2);
+        expect(items[0]?.textContent).toContain("创建者");
+        expect(items[0]?.textContent).toContain("成员");
         expect(root.textContent).toContain("2 位当前社区成员");
 
         root.remove();

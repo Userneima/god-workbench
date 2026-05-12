@@ -131,7 +131,14 @@
     font-size: 0.86rem;
 }
 
-.member-list-dialog__role {
+.member-list-dialog__roles {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.35rem;
+}
+
+.member-list-dialog__role-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -199,8 +206,9 @@
         grid-template-columns: auto minmax(0, 1fr);
     }
 
-    .member-list-dialog__role {
+    .member-list-dialog__roles {
         grid-column: 2;
         justify-self: start;
+        justify-content: flex-start;
     }
 }
