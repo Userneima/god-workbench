@@ -134,11 +134,9 @@ export const selectComposerPanelVM = (state) => {
                 ? {
                     accessMode: "join",
                     title: "还没进入频道",
-                    description: currentChannel?.joinPolicy === "open"
-                        ? "当前账号还没拿到频道成员身份。点一下会直接进入频道。"
-                        : "进入频道后才能发帖、评论和使用匿名马甲。",
+                    description: "当前账号还没拿到频道成员身份。点一下会直接进入频道。",
                     placeholder: "进入频道后即可参与，当前无法发内容",
-                    primaryLabel: currentChannel?.joinPolicy === "open" ? "重新进入频道" : "申请加入",
+                    primaryLabel: "进入频道",
                     primaryAction: "submit-join-request"
                 }
                     : null;

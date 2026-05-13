@@ -42,53 +42,20 @@ export const createMembershipApi = (context) => ({
             throw new Error("请先完成正式登录，再进入频道。");
         }
 
-        const joinPolicy = await context.fetchChannelJoinPolicy(channelId);
-        if (joinPolicy === "open") {
-            const membership = await context.ensureApprovedMembership(channelId, snapshot);
-            if (!membership?.identityId) {
-                throw new Error("进入频道失败，请稍后重试。");
-            }
-
-            return {
-                id: membership.identityId,
-                channelId,
-                userId: snapshot.user.id,
-                status: "approved",
-                message: message || ""
-            };
+        const membership = await context.ensureApprovedMembership(channelId, snapshot, {
+            allowClosedChannel: true
+        });
+        if (!membership?.identityId) {
+            throw new Error("进入频道失败，请稍后重试。");
         }
 
-        const existingJoinRequest = await context.fetchLatestOwnJoinRequest(channelId, snapshot.user.id);
-        if (existingJoinRequest?.status === "pending") {
-            const profileByUserId = await context.fetchReviewProfiles([existingJoinRequest]);
-            return context.normalizeJoinRequest(existingJoinRequest, profileByUserId);
-        }
-
-        const client = context.getSupabaseClient();
-        const { data, error } = await client
-            .from("channel_join_requests")
-            .insert({
-                channel_id: channelId,
-                user_id: snapshot.user.id,
-                status: "pending",
-                message: String(message || "").trim() || null
-            })
-            .select(context.joinRequestSelectFields)
-            .single();
-
-        if (error) {
-            if (String(error.code || "") === "23505") {
-                const pendingJoinRequest = await context.fetchLatestOwnJoinRequest(channelId, snapshot.user.id);
-                if (pendingJoinRequest?.status === "pending") {
-                    const profileByUserId = await context.fetchReviewProfiles([pendingJoinRequest]);
-                    return context.normalizeJoinRequest(pendingJoinRequest, profileByUserId);
-                }
-            }
-            throw error;
-        }
-
-        const profileByUserId = await context.fetchReviewProfiles([data]);
-        return context.normalizeJoinRequest(data, profileByUserId);
+        return {
+            id: membership.identityId,
+            channelId,
+            userId: snapshot.user.id,
+            status: "approved",
+            message: String(message || "").trim()
+        };
     },
     async approveJoinRequest(requestId) {
         const client = context.getSupabaseClient();

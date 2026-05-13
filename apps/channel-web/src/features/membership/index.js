@@ -55,7 +55,7 @@ export const createMembershipActions = ({ store, dataService, showToast, runtime
             });
             showToast({
                 tone: "success",
-                message: result?.status === "approved" ? "已进入频道。" : "加入申请已提交。"
+                message: "已进入频道。"
             });
         } catch (error) {
             const message = getChannelActionErrorMessage("submit_join_request", error);
@@ -78,36 +78,14 @@ export const createMembershipActions = ({ store, dataService, showToast, runtime
         }
 
         store.dispatch({
-            type: "membership/set-review-status",
-            payload: { status: "loading" }
+            type: "membership/set-state",
+            payload: {
+                reviewItems: [],
+                reviewStatus: "idle",
+                error: null
+            }
         });
-
-        try {
-            const reviewItems = await dataService.listPendingJoinRequests(channelId);
-            store.dispatch({
-                type: "membership/set-state",
-                payload: {
-                    reviewItems,
-                    reviewStatus: "idle",
-                    error: null
-                }
-            });
-            return reviewItems;
-        } catch (error) {
-            const message = getChannelActionErrorMessage("load_membership_reviews", error);
-            store.dispatch({
-                type: "membership/set-state",
-                payload: {
-                    reviewStatus: "idle",
-                    error: message
-                }
-            });
-            showToast({
-                tone: "error",
-                message
-            });
-            return [];
-        }
+        return [];
     },
     async approveJoinRequest(requestId) {
         store.dispatch({

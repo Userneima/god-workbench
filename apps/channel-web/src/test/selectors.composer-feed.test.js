@@ -93,7 +93,7 @@ describe("channel view model selectors: composer/feed", () => {
         expect(vm.canCompose).toBe(false);
         expect(vm.gate.accessMode).toBe("join");
         expect(vm.gate.primaryAction).toBe("submit-join-request");
-        expect(vm.gate.primaryLabel).toBe("重新进入频道");
+        expect(vm.gate.primaryLabel).toBe("进入频道");
     });
 
     it("keeps the syncing hint only during runtime hydration", () => {
@@ -126,7 +126,7 @@ describe("channel view model selectors: composer/feed", () => {
 
         expect(vm.canCompose).toBe(false);
         expect(vm.gate.accessMode).toBe("join");
-        expect(vm.gate.primaryLabel).toBe("重新进入频道");
+        expect(vm.gate.primaryLabel).toBe("进入频道");
     });
 
     it("maps feed state into empty and ready states", () => {

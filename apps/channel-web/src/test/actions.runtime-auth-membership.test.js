@@ -153,7 +153,7 @@ describe("channel feature actions: runtime/auth/membership", () => {
         expect(state.authState.error).toContain("还没有关闭邮箱确认");
     });
 
-    it("keeps the viewer in preview state after submitting an approval-required join request", async () => {
+    it("directly enters the channel after submitting join for an authenticated viewer", async () => {
         store.dispatch({
             type: "runtime/preview-ready",
             payload: { channel: approvedRuntime.channel }
@@ -174,10 +174,10 @@ describe("channel feature actions: runtime/auth/membership", () => {
             }
         });
         dataService.submitJoinRequest.mockResolvedValue({
-            id: "request-2",
+            id: "identity-2",
             channelId: "channel-1",
             userId: "user-2",
-            status: "pending",
+            status: "approved",
             message: "我想加入讨论。"
         });
         dataService.loadChannelBootstrap.mockResolvedValue({
@@ -187,25 +187,31 @@ describe("channel feature actions: runtime/auth/membership", () => {
                 isAnonymous: false
             },
             membership: {
-                status: "pending",
-                joinRequest: {
-                    id: "request-2",
-                    channelId: "channel-1",
-                    userId: "user-2",
-                    status: "pending",
-                    message: "我想加入讨论。"
-                },
+                status: "approved",
+                joinRequest: null,
                 reviewItems: [],
-                role: null
+                role: "member",
+                identityId: "identity-2",
+                displayName: "guest",
+                avatarUrl: ""
             },
-            memberRuntime: null
+            memberRuntime: {
+                ...approvedRuntime,
+                realIdentity: {
+                    id: "identity-2",
+                    name: "guest",
+                    avatar: "avatar",
+                    meta: "当前真实身份",
+                    role: "member"
+                }
+            }
         });
 
         await actions.submitJoinRequest();
 
         const state = store.getState();
-        expect(state.membershipState.status).toBe("pending");
-        expect(state.runtimeState.status).toBe("preview");
+        expect(state.membershipState.status).toBe("approved");
+        expect(state.runtimeState.status).toBe("ready");
     });
 
     it("signs out and returns the page to public preview state", async () => {

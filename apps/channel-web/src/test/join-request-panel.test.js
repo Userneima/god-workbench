@@ -81,7 +81,7 @@ describe("join request panel input stability", () => {
         root.remove();
     });
 
-    it("shows a submit action for authenticated viewers who are not yet approved", () => {
+    it("shows a direct enter action for authenticated viewers who are not yet approved", () => {
         const root = document.createElement("div");
         document.body.append(root);
         const store = createStore();
@@ -119,8 +119,8 @@ describe("join request panel input stability", () => {
 
         const submitButton = root.querySelector("[data-join-request-action='submit']");
         expect(submitButton).toBeTruthy();
-        expect(root.textContent).toContain("申请加入当前频道");
-        expect(root.textContent).toContain("申请加入");
+        expect(root.textContent).toContain("进入当前频道");
+        expect(root.textContent).toContain("进入频道");
 
         root.remove();
     });

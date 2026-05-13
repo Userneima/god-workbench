@@ -1491,7 +1491,7 @@ export const createChannelDataServiceContext = () => {
         return Array.isArray(data) ? data[0] || null : null;
     };
 
-    const ensureApprovedMembership = async (channelId, snapshot) => {
+    const ensureApprovedMembership = async (channelId, snapshot, { allowClosedChannel = false } = {}) => {
         if (!channelId || !snapshot.user?.id || snapshot.isAnonymous) {
             return null;
         }
@@ -1502,7 +1502,7 @@ export const createChannelDataServiceContext = () => {
         }
 
         const joinPolicy = await fetchChannelJoinPolicy(channelId);
-        if (joinPolicy !== "open") {
+        if (joinPolicy !== "open" && !allowClosedChannel) {
             return null;
         }
 
@@ -1597,15 +1597,10 @@ export const createChannelDataServiceContext = () => {
         const membership = await getCurrentMembership(channelId);
 
         if (membership?.status === "approved" && membership.identityId) {
-            let reviewItems = [];
-            if (includeReviewItems && (membership.role === "owner" || membership.role === "admin")) {
-                reviewItems = await context.api.listPendingJoinRequests(channelId);
-            }
-
             return {
                 status: "approved",
                 joinRequest: null,
-                reviewItems,
+                reviewItems: [],
                 role: membership.role,
                 identityId: membership.identityId,
                 displayName: membership.displayName,
@@ -1615,30 +1610,14 @@ export const createChannelDataServiceContext = () => {
 
         const ensuredMembership = await ensureApprovedMembership(channelId, snapshot);
         if (ensuredMembership?.identityId) {
-            let reviewItems = [];
-            if (includeReviewItems && (ensuredMembership.role === "owner" || ensuredMembership.role === "admin")) {
-                reviewItems = await context.api.listPendingJoinRequests(channelId);
-            }
-
             return {
                 status: "approved",
                 joinRequest: null,
-                reviewItems,
+                reviewItems: [],
                 role: ensuredMembership.role,
                 identityId: ensuredMembership.identityId,
                 displayName: ensuredMembership.displayName,
                 avatarUrl: ensuredMembership.avatarUrl
-            };
-        }
-
-        const latestJoinRequest = await fetchLatestOwnJoinRequest(channelId, snapshot.user.id);
-        if (latestJoinRequest) {
-            const profileByUserId = await fetchReviewProfiles([latestJoinRequest]);
-            return {
-                status: latestJoinRequest.status || "guest",
-                joinRequest: normalizeJoinRequest(latestJoinRequest, profileByUserId),
-                reviewItems: [],
-                role: null
             };
         }
 
