@@ -61,8 +61,10 @@ export const mountChannelIntelligenceBlock = ({ root, dialogRoot = null, store, 
             || previousVM.revealMemberPickerOpen !== vm.revealMemberPickerOpen
             || previousVM.revealAngelPickerOpen !== vm.revealAngelPickerOpen
             || previousVM.currentTheme !== vm.currentTheme
+            || previousVM.currentRoundDisplayTitle !== vm.currentRoundDisplayTitle
             || previousVM.hasTheme !== vm.hasTheme
             || previousVM.canManageRound !== vm.canManageRound
+            || previousVM.canRenameCurrentRound !== vm.canRenameCurrentRound
             || previousVM.canEditTheme !== vm.canEditTheme
             || previousVM.currentStageLabel !== vm.currentStageLabel
             || previousVM.currentTaskStageLabel !== vm.currentTaskStageLabel

@@ -608,6 +608,7 @@ export const createRoundActions = ({ store, dataService, showToast, loadFeed }) 
                     type: "runtime/update-channel",
                     payload: { channel: nextChannel }
                 });
+                await actions.refreshCurrentRound({ silent: true });
                 store.dispatch({
                     type: "round-management/set-field",
                     payload: { themeEditorOpen: false }
@@ -620,6 +621,44 @@ export const createRoundActions = ({ store, dataService, showToast, loadFeed }) 
                 showToast({
                     tone: "error",
                     message: getChannelActionErrorMessage("update_round_state", error)
+                });
+            }
+        },
+        async renameCurrentRound() {
+            const state = store.getState();
+            if (!canManageRound(state)) {
+                showToast({
+                    tone: "info",
+                    message: "只有频道管理员才能修改轮次名称。"
+                });
+                return;
+            }
+
+            const nextTitle = window.prompt(
+                "请输入当前轮次名称",
+                state.roundState.title || state.roundState.defaultTitle || ""
+            );
+            if (nextTitle === null) {
+                return;
+            }
+
+            try {
+                const nextChannel = await dataService.updateChannelRoundState({
+                    title: nextTitle
+                });
+                store.dispatch({
+                    type: "runtime/update-channel",
+                    payload: { channel: nextChannel }
+                });
+                await actions.refreshCurrentRound({ silent: true });
+                showToast({
+                    tone: "success",
+                    message: "当前轮次名称已更新。"
+                });
+            } catch (error) {
+                showToast({
+                    tone: "error",
+                    message: getChannelActionErrorMessage("rename_current_round", error)
                 });
             }
         },

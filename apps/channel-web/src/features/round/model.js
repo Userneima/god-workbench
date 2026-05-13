@@ -21,6 +21,7 @@ export const formatRoundDateLabel = (value) => {
 
 export const buildRoundDisplayTitle = ({
     title = "",
+    defaultTitle = "",
     theme = "",
     startedAt = null,
     completedAt = null,
@@ -28,23 +29,20 @@ export const buildRoundDisplayTitle = ({
     fallback = "未命名主题"
 } = {}) => {
     const explicitTitle = String(title || "").trim();
+    const normalizedDefaultTitle = String(defaultTitle || "").trim();
     const normalizedTheme = String(theme || "").trim();
     const dateLabel = formatRoundDateLabel(startedAt || completedAt || createdAt || null);
 
-    if (explicitTitle && explicitTitle !== normalizedTheme) {
+    if (explicitTitle) {
         return explicitTitle;
     }
 
-    if (dateLabel && normalizedTheme) {
-        return `${dateLabel} · ${normalizedTheme}`;
+    if (normalizedDefaultTitle) {
+        return normalizedDefaultTitle;
     }
 
     if (dateLabel) {
-        return `${dateLabel} · ${fallback}`;
-    }
-
-    if (explicitTitle) {
-        return explicitTitle;
+        return `${dateLabel} · ${normalizedTheme || fallback}`;
     }
 
     if (normalizedTheme) {

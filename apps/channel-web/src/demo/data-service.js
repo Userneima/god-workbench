@@ -167,7 +167,7 @@ export const createDemoDataService = () => {
         id: channel.currentRoundId || "demo-current-round",
         lifecycleStatus: channel.currentRoundStatus === "archived" ? "archived" : "active",
         archiveMode: null,
-        title: channel.currentRoundTheme || "",
+        title: channel.currentRoundTitle || "",
         defaultTitle: channel.currentRoundTheme || "未命名回合",
         theme: channel.currentRoundTheme || "",
         godProfile: channel.currentRoundGodProfile ? { ...channel.currentRoundGodProfile } : null,
@@ -432,6 +432,7 @@ export const createDemoDataService = () => {
                 startedAt: channel.currentRoundStartedAt || completedAt,
                 completedAt,
                 createdAt: completedAt,
+                title: channel.currentRoundTitle || "",
                 godProfile: channel.currentRoundGodProfile ? { ...channel.currentRoundGodProfile } : null,
                 stats: {
                     totalMembers: 1,
@@ -455,6 +456,7 @@ export const createDemoDataService = () => {
 
             posts = posts.filter((post) => Boolean(post.roundArchive));
             channel.currentRoundId = `demo-round-${roundCounter++}`;
+            channel.currentRoundTitle = "";
             channel.currentRoundTheme = "";
             channel.currentRoundStage = "wish";
             channel.currentRoundStatus = "active";
@@ -638,6 +640,9 @@ export const createDemoDataService = () => {
             return cloneValue(channel);
         },
         async updateChannelRoundState(input) {
+            if (input.title !== undefined) {
+                channel.currentRoundTitle = String(input.title || "").trim();
+            }
             if (input.theme !== undefined) {
                 channel.currentRoundTheme = String(input.theme || "").trim();
             }

@@ -381,6 +381,8 @@ export const createChannelRoundRepository = ({
     async updateChannelRoundState(input) {
         const channel = ensureLoadedChannel();
         const client = getSupabaseClient();
+        const hasNextTitle = input.title !== undefined;
+        const nextTitle = hasNextTitle ? String(input.title || "").trim() : null;
         const nextTheme = input.theme === undefined
             ? String(channel.current_round_theme || channel.currentRoundTheme || "").trim()
             : String(input.theme || "").trim();
@@ -416,7 +418,7 @@ export const createChannelRoundRepository = ({
             throw new Error("频道还没有初始化到数据库。");
         }
 
-        const { error } = await client.rpc("update_channel_current_round_state", {
+        const rpcInput = {
             target_channel_id: channel.id,
             next_theme: nextTheme || null,
             next_god_profile: nextGodName
@@ -432,7 +434,12 @@ export const createChannelRoundRepository = ({
             next_started_at: nextStartedAt,
             next_completed_at: nextCompletedAt,
             next_reveal_map: nextRevealMap
-        });
+        };
+        if (hasNextTitle) {
+            rpcInput.next_title = nextTitle;
+        }
+
+        const { error } = await client.rpc("update_channel_current_round_state", rpcInput);
 
         if (error) {
             if (isSchemaCompatibilityError(error)) {

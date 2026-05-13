@@ -15,6 +15,7 @@ const createActions = () => ({
     cancelRoundDeadlineEditing: vi.fn(),
     setRoundDeadlineDraft: vi.fn(),
     saveRoundDeadlines: vi.fn(),
+    renameCurrentRound: vi.fn(),
     toggleRoundRevealEditor: vi.fn(),
     generateRoundRevealResults: vi.fn(),
     toggleRoundRevealMemberPicker: vi.fn(),
@@ -85,12 +86,55 @@ describe("channel intelligence block", () => {
         block.render();
 
         expect(root.textContent).toContain("当前回合");
+        expect(root.textContent).toContain("改轮次名");
         expect(root.textContent).not.toContain("国王与天使");
         expect(root.textContent).toContain("本周上帝");
         expect(root.textContent).toContain("指定上帝");
         expect(root.textContent).toContain("当前阶段");
         expect(root.textContent).toContain("我的待办");
         expect(root.textContent).not.toContain("进入回合管理");
+
+        root.remove();
+        dialogRoot.remove();
+    });
+
+    it("wires the current round rename action", () => {
+        const root = document.createElement("div");
+        const dialogRoot = document.createElement("div");
+        document.body.append(root);
+        document.body.append(dialogRoot);
+        const store = createStore();
+        const actions = createActions();
+
+        store.dispatch({
+            type: "runtime/update-identity",
+            payload: {
+                identity: {
+                    role: "owner"
+                }
+            }
+        });
+        store.dispatch({
+            type: "round/set-current-round",
+            payload: {
+                round: {
+                    id: "round-1",
+                    lifecycleStatus: "active",
+                    title: "2026.05.13 · 解压",
+                    defaultTitle: "2026.05.13 · 解压",
+                    theme: "解压",
+                    currentStage: "wish",
+                    deadlines: {},
+                    revealMap: {}
+                }
+            }
+        });
+
+        const block = mountChannelIntelligenceBlock({ root, dialogRoot, store, actions });
+        block.render();
+
+        root.querySelector("[data-channel-intelligence-action='rename-current-round']")?.click();
+        expect(actions.renameCurrentRound).toHaveBeenCalledTimes(1);
 
         root.remove();
         dialogRoot.remove();

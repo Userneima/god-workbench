@@ -46,6 +46,7 @@ export const createInitialState = () => ({
         currentRoundId: null,
         lifecycleStatus: "active",
         archiveMode: null,
+        title: "",
         defaultTitle: "",
         theme: gameRoundTheme,
         activeStage: "wish",

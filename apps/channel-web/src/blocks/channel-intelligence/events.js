@@ -14,6 +14,10 @@ export const attachChannelIntelligenceEvents = ({ root, roots = [], actions }) =
                     actions.toggleRoundThemeEditor();
                     return;
                 }
+                if (action === "rename-current-round") {
+                    void actions.renameCurrentRound();
+                    return;
+                }
                 if (action === "toggle-deadline-editor") {
                     actions.toggleRoundDeadlineEditor();
                     return;

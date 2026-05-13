@@ -49,6 +49,7 @@ export const demoChannel = {
     previewVisibility: "public",
     joinPolicy: "approval_required",
     currentRoundId: "demo-round-1",
+    currentRoundTitle: "2026.04.22 · 玄学",
     currentRoundTheme: "玄学",
     currentRoundStage: "wish",
     currentRoundStatus: "active",

@@ -10,7 +10,8 @@ export const selectSidebarNavVM = (state) => {
     const showAuthenticatedState = isAuthenticated && !isDemoMode;
     const homeHref = "?";
     const currentRoundTitle = buildRoundDisplayTitle({
-        title: state.roundState.defaultTitle,
+        title: state.roundState.title,
+        defaultTitle: state.roundState.defaultTitle,
         theme: state.roundState.theme,
         startedAt: state.roundState.startedAt
     });
@@ -33,7 +34,8 @@ export const selectSidebarNavVM = (state) => {
         roundItems.push({
             id: archive.id,
             name: buildRoundDisplayTitle({
-                title: archive.title,
+                title: archive.title && archive.title !== archive.theme ? archive.title : "",
+                defaultTitle: archive.defaultTitle,
                 theme: archive.theme,
                 completedAt: archive.completedAt,
                 createdAt: archive.createdAt

@@ -164,7 +164,8 @@ export const selectChannelIntelligenceVM = (state) => {
     const archives = rawArchives.map((archive) => ({
         ...archive,
         displayTitle: buildRoundDisplayTitle({
-            title: archive.title,
+            title: archive.title && archive.title !== archive.theme ? archive.title : "",
+            defaultTitle: archive.defaultTitle,
             theme: archive.theme,
             completedAt: archive.completedAt,
             createdAt: archive.createdAt
@@ -200,8 +201,15 @@ export const selectChannelIntelligenceVM = (state) => {
     const deadlines = state.roundState.deadlines || {};
     const wishDeadline = deadlines.wish || null;
     const wishDeadlineDraft = state.overlayState.roundManagement.draftDeadlines?.wish?.deadlineAt || wishDeadline?.deadlineAt || null;
+    const currentRoundDisplayTitle = buildRoundDisplayTitle({
+        title: state.roundState.title,
+        defaultTitle: state.roundState.defaultTitle,
+        theme: state.roundState.theme,
+        startedAt: state.roundState.startedAt
+    });
 
     return {
+        currentRoundDisplayTitle,
         godPickerOpen: state.overlayState.roundManagement.godPickerOpen,
         themeEditorOpen: state.overlayState.roundManagement.themeEditorOpen,
         revealEditorOpen: state.overlayState.roundManagement.revealEditorOpen,
@@ -228,6 +236,7 @@ export const selectChannelIntelligenceVM = (state) => {
         currentTheme: currentTheme || "待本周上帝发布主题",
         hasTheme: Boolean(currentTheme),
         canManageRound,
+        canRenameCurrentRound: canManageRound && !isArchivedCurrentRound,
         canEditTheme,
         canArchiveRound: canManageRound && !isArchivedCurrentRound && currentStage.value === "reveal",
         canForceArchiveRound: canManageRound && !isArchivedCurrentRound,

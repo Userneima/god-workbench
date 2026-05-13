@@ -217,7 +217,11 @@ export const channelIntelligenceTemplate = (vm) => `
                 <div class="channel-intelligence__round-head">
                     <div>
                         <h3>当前回合</h3>
+                        <div class="channel-intelligence__round-meta">${escapeHtml(vm.currentRoundDisplayTitle)}</div>
                     </div>
+                    ${vm.canRenameCurrentRound ? `
+                        <button class="channel-intelligence__action-button is-quiet" data-channel-intelligence-action="rename-current-round" type="button">改轮次名</button>
+                    ` : ""}
                 </div>
                 <div class="channel-intelligence__round-row ${vm.canManageRound ? "is-with-action" : ""}">
                     <div class="channel-intelligence__round-copy">

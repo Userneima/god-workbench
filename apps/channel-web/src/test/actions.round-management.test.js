@@ -201,6 +201,50 @@ describe("channel feature actions: round management", () => {
         expect(store.getState().overlayState.toast.message).toBe("上一轮已归档，当前已切到新一轮。");
     });
 
+    it("renames the current round and refreshes the round snapshot", async () => {
+        const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("2026.05.13 · 解压一下");
+
+        store.dispatch({
+            type: "round/set-current-round",
+            payload: {
+                round: {
+                    id: "round-current",
+                    lifecycleStatus: "active",
+                    title: "2026.05.13 · 解压",
+                    defaultTitle: "2026.05.13 · 解压",
+                    theme: "解压",
+                    currentStage: "wish",
+                    deadlines: {},
+                    revealMap: {}
+                }
+            }
+        });
+        dataService.updateChannelRoundState.mockResolvedValue(store.getState().runtimeState.channel);
+        dataService.loadCurrentRound.mockResolvedValue({
+            id: "round-current",
+            lifecycleStatus: "active",
+            archiveMode: null,
+            title: "2026.05.13 · 解压一下",
+            defaultTitle: "2026.05.13 · 解压",
+            currentStage: "wish",
+            theme: "解压",
+            deadlines: {},
+            godProfile: null,
+            revealMap: {},
+            completedAt: null
+        });
+
+        await actions.renameCurrentRound();
+
+        expect(dataService.updateChannelRoundState).toHaveBeenCalledWith({
+            title: "2026.05.13 · 解压一下"
+        });
+        expect(store.getState().roundState.title).toBe("2026.05.13 · 解压一下");
+        expect(store.getState().overlayState.toast.message).toBe("当前轮次名称已更新。");
+
+        promptSpy.mockRestore();
+    });
+
     it("deletes the selected archived round and closes the detail dialog", async () => {
         const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 

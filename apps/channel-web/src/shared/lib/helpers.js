@@ -459,6 +459,7 @@ export const getChannelActionErrorMessage = (action, error) => {
         update_channel: "频道资料保存失败，请稍后重试。",
         update_round_state: "本周主题或上帝保存失败，请稍后重试。",
         archive_round: "回合归档失败，请稍后重试。",
+        rename_current_round: "当前轮次名称保存失败，请稍后重试。",
         restore_round_archive: "恢复归档失败，请稍后重试。",
         rename_round_archive: "归档标题保存失败，请稍后重试。",
         export_round_archive: "归档导出失败，请稍后重试。",

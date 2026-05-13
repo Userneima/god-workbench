@@ -8,6 +8,7 @@ export const applyRoundActions = (draft, action) => {
         draft.roundState.currentRoundId = nextRoundId;
         draft.roundState.lifecycleStatus = action.payload.round?.lifecycleStatus || "active";
         draft.roundState.archiveMode = action.payload.round?.archiveMode || null;
+        draft.roundState.title = action.payload.round?.title || "";
         draft.roundState.defaultTitle = action.payload.round?.defaultTitle || "";
         draft.roundState.theme = action.payload.round?.theme || "";
         draft.roundState.activeStage = action.payload.round?.currentStage || "wish";
