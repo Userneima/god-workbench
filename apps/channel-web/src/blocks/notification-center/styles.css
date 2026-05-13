@@ -15,6 +15,8 @@
 }
 
 .notification-center__panel {
+    --notification-panel-offset-x: 0px;
+    --notification-panel-offset-y: 0px;
     position: fixed;
     width: min(20.75rem, calc(100vw - 1.2rem));
     height: min(30.5rem, calc(100vh - 5.1rem));
@@ -24,8 +26,8 @@
     box-shadow: var(--shadow-floating);
     overflow: hidden;
     opacity: 0;
-    transform: translateY(-0.32rem) scale(0.99);
-    transform-origin: top right;
+    transform: translate(var(--notification-panel-offset-x), calc(var(--notification-panel-offset-y) - 0.32rem)) scale(0.99);
+    transform-origin: center;
     transition: opacity 160ms ease, transform 160ms ease;
 }
 
@@ -40,7 +42,7 @@
 
 .notification-center.is-open .notification-center__panel {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate(var(--notification-panel-offset-x), var(--notification-panel-offset-y)) scale(1);
 }
 
 .notification-center__tabs {
@@ -200,6 +202,8 @@
         top: 4.5rem;
         right: 0.5rem;
         left: 0.5rem;
+        --notification-panel-offset-x: 0px;
+        --notification-panel-offset-y: 0px;
         width: auto;
         height: min(31rem, calc(100vh - 5rem));
     }

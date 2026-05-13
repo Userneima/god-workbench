@@ -152,7 +152,7 @@ describe("channel view model selectors: comments/overlays", () => {
         expect(vm.canSubmit).toBe(false);
     });
 
-    it("computes anchored floating panel styles from trigger coordinates", () => {
+    it("centers the notification panel while keeping the channel menu anchored to its trigger", () => {
         const state = createInitialState();
         state.overlayState.notificationCenter.open = true;
         state.overlayState.notificationCenter.anchorX = 900;
@@ -161,7 +161,8 @@ describe("channel view model selectors: comments/overlays", () => {
         state.overlayState.channelMenu.anchorX = 120;
         state.overlayState.channelMenu.anchorY = 68;
 
-        expect(selectNotificationCenterVM(state).panelStyle).toContain("left:");
+        expect(selectNotificationCenterVM(state).panelStyle).toContain("top:50%");
+        expect(selectNotificationCenterVM(state).panelStyle).toContain("left:50%");
         expect(selectChannelMenuDialogVM(state).panelStyle).toContain("left:");
     });
 

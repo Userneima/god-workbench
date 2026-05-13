@@ -275,5 +275,6 @@ describe("composer panel interactions", () => {
         expect(root.textContent).toContain("AI 润色预览");
         expect(root.textContent).toContain("更中性的看法是这边来试试");
         expect(root.textContent).not.toContain("发完自动换马甲");
+        expect(root.querySelector(".composer-panel__anonymous-avatar")).toBeNull();
     });
 });

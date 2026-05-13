@@ -2,10 +2,6 @@ import { buildRoundSummary, findCurrentMemberStatus } from "../../features/round
 import { formatActivityTimeLabel, getPostPreviewText } from "../../shared/lib/helpers.js";
 
 const DESKTOP_BREAKPOINT = 720;
-const NOTIFICATION_PANEL_WIDTH = 302;
-const NOTIFICATION_PANEL_HEIGHT = 396;
-const VIEWPORT_MARGIN = 12;
-const TRIGGER_GAP = 14;
 
 const clipText = (value, maxLength = 24) => {
     const normalized = String(value || "").replace(/\s+/g, " ").trim();
@@ -22,19 +18,7 @@ const getNotificationPanelStyle = (overlayState) => {
         return "";
     }
 
-    const { anchorX, anchorY } = overlayState;
-    if (typeof anchorX !== "number" || typeof anchorY !== "number") {
-        return "";
-    }
-
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const maxLeft = Math.max(VIEWPORT_MARGIN, viewportWidth - NOTIFICATION_PANEL_WIDTH - VIEWPORT_MARGIN);
-    const maxTop = Math.max(VIEWPORT_MARGIN, viewportHeight - NOTIFICATION_PANEL_HEIGHT - VIEWPORT_MARGIN);
-    const left = Math.min(maxLeft, Math.max(VIEWPORT_MARGIN, anchorX - NOTIFICATION_PANEL_WIDTH));
-    const top = Math.min(maxTop, Math.max(VIEWPORT_MARGIN, anchorY + TRIGGER_GAP));
-
-    return `top:${top}px;left:${left}px;right:auto;`;
+    return "top:50%;left:50%;right:auto;--notification-panel-offset-x:-50%;--notification-panel-offset-y:-50%;";
 };
 
 const buildInteractionItems = (state) => {

@@ -142,9 +142,7 @@ export const composerPanelTemplate = (vm) => `
                     <div class="composer-panel__tools composer-panel__tools--collapsed">
                         ${vm.stageInfo.requiresMention && vm.canChooseMentionTarget ? buildMentionMenu(vm) : ""}
                         ${vm.canProxyWish ? buildProxyWishMenu(vm) : ""}
-                        ${vm.anonymousLocked ? `
-                            <div class="composer-panel__stage-badge">匿名阶段</div>
-                        ` : `
+                        ${vm.anonymousLocked ? "" : `
                             <button class="composer-panel__mode-toggle ${vm.anonymousMode ? "is-active" : ""}" data-composer-action="toggle-anonymous" type="button" title="匿名发言">
                                 <span>匿名</span>
                             </button>
@@ -168,9 +166,7 @@ export const composerPanelTemplate = (vm) => `
                     </button>
                     ${vm.stageInfo.requiresMention && vm.canChooseMentionTarget ? buildMentionMenu(vm) : ""}
                     ${vm.canProxyWish ? buildProxyWishMenu(vm) : ""}
-                    ${vm.anonymousLocked ? `
-                        <div class="composer-panel__stage-badge">匿名阶段</div>
-                    ` : `
+                    ${vm.anonymousLocked ? "" : `
                         <button class="composer-panel__mode-toggle ${vm.anonymousMode ? "is-active" : ""}" data-composer-action="toggle-anonymous" type="button" title="匿名发言">
                             <span>匿名</span>
                         </button>
@@ -208,12 +204,9 @@ export const composerPanelTemplate = (vm) => `
             </div>
             ${vm.anonymousMode ? `
                 <div class="composer-panel__anonymous-panel">
-                    <div class="composer-panel__anonymous-card">
-                        <img alt="${escapeHtml(vm.activeAlias?.name || "匿名用户")}" class="composer-panel__anonymous-avatar" src="${vm.activeAlias?.avatar || ""}" />
-                            <div class="composer-panel__anonymous-copy">
+                    <div class="composer-panel__anonymous-card composer-panel__anonymous-card--controls">
+                            <div class="composer-panel__anonymous-copy composer-panel__anonymous-copy--controls">
                             <div class="composer-panel__anonymous-head">
-                                <strong>${escapeHtml(vm.activeAlias?.name || "匿名用户")}</strong>
-                                <button class="composer-panel__anonymous-action composer-panel__anonymous-action--inline" data-composer-action="regenerate-alias" type="button">换马甲</button>
                                 <label class="composer-panel__anonymous-checkbox">
                                     <input ${vm.anonymousTextRewrite ? "checked" : ""} data-ref="anonymous-text-rewrite" type="checkbox" />
                                     <span>AI 润色文本</span>
