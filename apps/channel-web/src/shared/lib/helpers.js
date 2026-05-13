@@ -413,6 +413,12 @@ export const getChannelActionErrorMessage = (action, error) => {
             if (lowerMessage.includes("only the designated platform operator can view registered users")) {
                 return "只有指定后台账号才能查看已注册用户。";
             }
+            if (lowerMessage.includes("permission denied for function list_registered_users")) {
+                return "已注册用户目录的数据库权限还没同步完成，请补上最新 migration。";
+            }
+            if (lowerMessage.includes("permission denied for schema private")) {
+                return "已注册用户目录的数据库权限还没同步完成，请补上最新 migration。";
+            }
         }
         return "当前操作被频道权限规则拦截，请刷新后重试。";
     }
@@ -513,6 +519,7 @@ export const getChannelActionErrorMessage = (action, error) => {
         load_membership_reviews: "待审核列表加载失败，请稍后重试。",
         approve_join_request: "通过申请失败，请稍后重试。",
         reject_join_request: "拒绝申请失败，请稍后重试。",
+        load_registered_users: "已注册用户列表加载失败，请稍后重试。",
         copy_post: "复制失败，请稍后重试。",
         read_avatar: "头像读取失败，请换一张图片再试。"
     };

@@ -244,4 +244,25 @@ describe("channel feature actions: overlay/ui", () => {
         expect(state.open).toBe(false);
         expect(dataService.listRegisteredUsers).not.toHaveBeenCalled();
     });
+
+    it("shows a migration hint when the registered users rpc permission chain is incomplete", async () => {
+        store.dispatch({
+            type: "auth/set-state",
+            payload: {
+                status: "authenticated",
+                user: { id: "user-1", email: "wyc1186164839@gmail.com" },
+                isAnonymous: false
+            }
+        });
+        dataService.listRegisteredUsers.mockRejectedValue({
+            code: "42501",
+            message: "permission denied for function list_registered_users"
+        });
+
+        await actions.openRegisteredUsersDialog();
+
+        const state = store.getState().overlayState.registeredUsers;
+        expect(state.open).toBe(true);
+        expect(state.error).toBe("已注册用户目录的数据库权限还没同步完成，请补上最新 migration。");
+    });
 });
