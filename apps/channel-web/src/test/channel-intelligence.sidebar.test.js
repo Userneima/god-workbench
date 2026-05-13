@@ -1,80 +1,19 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { mountChannelIntelligenceBlock } from "../blocks/channel-intelligence/index.js";
 import { createStore } from "../shared/state/store.js";
+import {
+    createChannelIntelligenceActions,
+    setApprovedOwnerContext
+} from "./support/channel-intelligence-fixtures.js";
 
-const createActions = () => ({
-    openOverlay: vi.fn(),
-    closeOverlay: vi.fn(),
-    toggleRoundGodPicker: vi.fn(),
-    assignRoundGod: vi.fn(),
-    toggleRoundThemeEditor: vi.fn(),
-    cancelRoundThemeEditing: vi.fn(),
-    setRoundThemeDraft: vi.fn(),
-    saveRoundTheme: vi.fn(),
-    toggleRoundDeadlineEditor: vi.fn(),
-    cancelRoundDeadlineEditing: vi.fn(),
-    setRoundDeadlineDraft: vi.fn(),
-    saveRoundDeadlines: vi.fn(),
-    renameCurrentRound: vi.fn(),
-    toggleRoundRevealEditor: vi.fn(),
-    generateRoundRevealResults: vi.fn(),
-    toggleRoundRevealMemberPicker: vi.fn(),
-    toggleRoundRevealAngelPicker: vi.fn(),
-    chooseRoundRevealMember: vi.fn(),
-    chooseRoundRevealAngel: vi.fn(),
-    saveRoundRevealPair: vi.fn(),
-    selectRoundArchive: vi.fn(),
-    closeArchiveDetail: vi.fn(),
-    viewSelectedArchiveInBoard: vi.fn(),
-    restoreArchivedRound: vi.fn(),
-    renameArchivedRound: vi.fn(),
-    exportArchivedRound: vi.fn(),
-    deleteArchivedRound: vi.fn(),
-    exitArchiveViewer: vi.fn()
-});
-
-const setApprovedOwnerContext = (store) => {
-    store.dispatch({
-        type: "auth/set-state",
-        payload: {
-            status: "authenticated",
-            user: { id: "user-1", email: "owner@example.com" }
-        }
-    });
-    store.dispatch({
-        type: "membership/set-state",
-        payload: {
-            status: "approved",
-            joinRequest: null,
-            reviewItems: [],
-            directoryItems: [],
-            directoryStatus: "idle",
-            directoryError: null,
-            mutationStatus: "idle",
-            activeMemberId: null,
-            reviewStatus: "idle",
-            submitStatus: "idle",
-            error: null
-        }
-    });
-    store.dispatch({
-        type: "runtime/update-identity",
-        payload: {
-            identity: {
-                role: "owner"
-            }
-        }
-    });
-};
-
-describe("channel intelligence block", () => {
+describe("channel intelligence sidebar", () => {
     it("preserves theme input focus across rerenders", () => {
         const root = document.createElement("div");
         const dialogRoot = document.createElement("div");
         document.body.append(root);
         document.body.append(dialogRoot);
         const store = createStore();
-        const actions = createActions();
+        const actions = createChannelIntelligenceActions();
 
         setApprovedOwnerContext(store);
         store.dispatch({
@@ -115,7 +54,7 @@ describe("channel intelligence block", () => {
         document.body.append(root);
         document.body.append(dialogRoot);
         const store = createStore();
-        const actions = createActions();
+        const actions = createChannelIntelligenceActions();
 
         const block = mountChannelIntelligenceBlock({ root, dialogRoot, store, actions });
         block.render();
@@ -140,7 +79,7 @@ describe("channel intelligence block", () => {
         document.body.append(root);
         document.body.append(dialogRoot);
         const store = createStore();
-        const actions = createActions();
+        const actions = createChannelIntelligenceActions();
 
         setApprovedOwnerContext(store);
 
@@ -161,7 +100,7 @@ describe("channel intelligence block", () => {
         document.body.append(root);
         document.body.append(dialogRoot);
         const store = createStore();
-        const actions = createActions();
+        const actions = createChannelIntelligenceActions();
 
         setApprovedOwnerContext(store);
         store.dispatch({
@@ -196,7 +135,7 @@ describe("channel intelligence block", () => {
         document.body.append(root);
         document.body.append(dialogRoot);
         const store = createStore();
-        const actions = createActions();
+        const actions = createChannelIntelligenceActions();
 
         store.dispatch({
             type: "runtime/update-channel",
@@ -224,75 +163,13 @@ describe("channel intelligence block", () => {
         dialogRoot.remove();
     });
 
-    it("removes the archive list from the sidebar block but still renders archive detail dialogs", () => {
-        const root = document.createElement("div");
-        const dialogRoot = document.createElement("div");
-        document.body.append(root);
-        document.body.append(dialogRoot);
-        const store = createStore();
-        const actions = createActions();
-
-        setApprovedOwnerContext(store);
-        store.dispatch({
-            type: "round/set-archives",
-            payload: {
-                items: [{
-                    id: "archive-1",
-                    title: "玄学测试",
-                    theme: "玄学测试",
-                    summaryLine: "玄学测试 · 1 对揭晓 · 2026-04-23",
-                    completedAt: "2026-04-23T12:00:00.000Z",
-                    godProfile: { name: "海屿", avatar: "haiyu-avatar" },
-                    stats: {
-                        totalMembers: 3,
-                        guessDone: 3,
-                        pairCount: 1
-                    },
-                    revealPairs: [{
-                        member: { name: "章鱼烧", avatar: "octopus-avatar" },
-                        angel: { name: "海屿", avatar: "haiyu-avatar" },
-                        wishPreview: "希望有人帮我整理玄学学习目录",
-                        guessedAngelName: "海屿"
-                    }]
-                }]
-            }
-        });
-        store.dispatch({
-            type: "channel-intelligence/set-field",
-            payload: {
-                selectedArchiveId: "archive-1"
-            }
-        });
-
-        const block = mountChannelIntelligenceBlock({ root, dialogRoot, store, actions });
-        block.render();
-
-        expect(root.textContent).not.toContain("往期回合");
-        expect(root.textContent).not.toContain("玄学测试");
-        expect(root.textContent).not.toContain("1 对揭晓");
-
-        store.dispatch({
-            type: "channel-intelligence/set-field",
-            payload: { archiveDetailOpen: true }
-        });
-        block.render();
-
-        expect(dialogRoot.querySelector("[data-channel-intelligence-dialog='archive-detail']")).not.toBeNull();
-        expect(dialogRoot.textContent).toContain("希望有人帮我整理玄学学习目录");
-        expect(dialogRoot.textContent).toContain("删除记录");
-        expect(dialogRoot.textContent).toContain("导出备份");
-
-        root.remove();
-        dialogRoot.remove();
-    });
-
     it("shows proxy wish task copy when the current user was recorded by the god", () => {
         const root = document.createElement("div");
         const dialogRoot = document.createElement("div");
         document.body.append(root);
         document.body.append(dialogRoot);
         const store = createStore();
-        const actions = createActions();
+        const actions = createChannelIntelligenceActions();
 
         store.dispatch({
             type: "auth/set-state",
@@ -371,53 +248,13 @@ describe("channel intelligence block", () => {
         dialogRoot.remove();
     });
 
-    it("uses the same primary archive title style as the left round navigation", () => {
-        const root = document.createElement("div");
-        const dialogRoot = document.createElement("div");
-        document.body.append(root);
-        document.body.append(dialogRoot);
-        const store = createStore();
-        const actions = createActions();
-
-        store.dispatch({
-            type: "round/set-archives",
-            payload: {
-                items: [{
-                    id: "archive-2",
-                    title: "2026.04.23 · 解压",
-                    defaultTitle: "2026.04.23 · 解压",
-                    theme: "解压",
-                    completedAt: "2026-04-23T12:00:00.000Z",
-                    stats: { pairCount: 0 },
-                    revealPairs: []
-                }]
-            }
-        });
-        store.dispatch({
-            type: "channel-intelligence/set-field",
-            payload: {
-                selectedArchiveId: "archive-2",
-                archiveDetailOpen: true
-            }
-        });
-
-        const block = mountChannelIntelligenceBlock({ root, dialogRoot, store, actions });
-        block.render();
-
-        expect(dialogRoot.textContent).toContain("解压");
-        expect(dialogRoot.textContent).not.toContain("2026.04.23 · 解压");
-
-        root.remove();
-        dialogRoot.remove();
-    });
-
     it("opens the wish deadline editor when clicking the deadline action", () => {
         const root = document.createElement("div");
         const dialogRoot = document.createElement("div");
         document.body.append(root);
         document.body.append(dialogRoot);
         const store = createStore();
-        const actions = createActions();
+        const actions = createChannelIntelligenceActions();
 
         setApprovedOwnerContext(store);
 
@@ -441,80 +278,6 @@ describe("channel intelligence block", () => {
         block.render();
 
         expect(root.querySelector("[data-channel-intelligence-ref='wish-deadline-input']")).toBeTruthy();
-
-        root.remove();
-        dialogRoot.remove();
-    });
-
-    it("wires archive detail actions through the dialog root", () => {
-        const root = document.createElement("div");
-        const dialogRoot = document.createElement("div");
-        document.body.append(root);
-        document.body.append(dialogRoot);
-        const store = createStore();
-        const actions = createActions();
-
-        setApprovedOwnerContext(store);
-        store.dispatch({
-            type: "round/set-archives",
-            payload: {
-                items: [{
-                    id: "archive-1",
-                    title: "玄学测试",
-                    theme: "玄学测试",
-                    completedAt: "2026-04-23T12:00:00.000Z",
-                    stats: {
-                        totalMembers: 3,
-                        guessDone: 2,
-                        pairCount: 1
-                    },
-                    revealPairs: [{
-                        member: { name: "章鱼烧", avatar: "octopus-avatar" },
-                        angel: { name: "海屿", avatar: "haiyu-avatar" },
-                        wishPreview: "希望有人帮我整理玄学学习目录",
-                        guessedAngelName: "海屿"
-                    }]
-                }]
-            }
-        });
-        store.dispatch({
-            type: "channel-intelligence/set-field",
-            payload: {
-                selectedArchiveId: "archive-1",
-                archiveDetailOpen: true
-            }
-        });
-        store.dispatch({
-            type: "round/set-archive-viewer",
-            payload: {
-                roundId: null,
-                detail: {
-                    id: "archive-1",
-                    title: "玄学测试",
-                    completedAt: "2026-04-23T12:00:00.000Z",
-                    stats: {
-                        totalMembers: 3,
-                        guessDone: 2,
-                        pairCount: 1
-                    },
-                    revealPairs: [{
-                        member: { name: "章鱼烧", avatar: "octopus-avatar" },
-                        angel: { name: "海屿", avatar: "haiyu-avatar" },
-                        wishPreview: "希望有人帮我整理玄学学习目录",
-                        guessedAngelName: "海屿"
-                    }],
-                    posts: []
-                }
-            }
-        });
-
-        const block = mountChannelIntelligenceBlock({ root, dialogRoot, store, actions });
-        block.render();
-
-        dialogRoot.querySelector("[data-channel-intelligence-action='delete-archive']").click();
-        expect(actions.deleteArchivedRound).toHaveBeenCalled();
-        dialogRoot.querySelector("[data-channel-intelligence-action='export-archive']").click();
-        expect(actions.exportArchivedRound).toHaveBeenCalled();
 
         root.remove();
         dialogRoot.remove();
