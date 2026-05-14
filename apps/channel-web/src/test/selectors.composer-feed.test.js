@@ -150,6 +150,26 @@ describe("channel view model selectors: composer/feed", () => {
         expect(vm.gate.primaryLabel).toBe("进入频道");
     });
 
+    it("collapses legacy pending review state back to a direct join action", () => {
+        const state = createInitialState();
+        state.authState.status = "authenticated";
+        state.authState.user = { id: "user-1", email: "member@example.com" };
+        state.membershipState.status = "pending";
+        state.runtimeState.channel = {
+            id: "channel-1",
+            slug: "channel",
+            name: "频道",
+            joinPolicy: "open"
+        };
+
+        const vm = selectComposerPanelVM(state);
+
+        expect(vm.canCompose).toBe(false);
+        expect(vm.gate.accessMode).toBe("join");
+        expect(vm.gate.primaryLabel).toBe("进入频道");
+        expect(vm.gate.title).toBe("进入当前频道");
+    });
+
     it("maps feed state into empty and ready states", () => {
         const emptyState = createInitialState();
         emptyState.feedState.status = "empty";

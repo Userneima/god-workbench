@@ -87,6 +87,7 @@ export const selectComposerPanelVM = (state) => {
         name: "未登录",
         meta: "公开浏览模式"
     };
+    const isLegacyJoinReviewState = membershipStatus === "pending" || membershipStatus === "rejected";
     const gateByState = !hasAuthenticatedUser
         ? {
             accessMode: "guest",
@@ -105,24 +106,6 @@ export const selectComposerPanelVM = (state) => {
                 primaryLabel: "继续升级",
                 primaryAction: "open-auth-upgrade"
             }
-            : membershipStatus === "pending"
-                ? {
-                    accessMode: "pending",
-                    title: "加入申请审核中",
-                    description: "管理员通过后，你就能正常发帖和评论。",
-                    placeholder: "等待管理员审核通过后即可发内容",
-                    primaryLabel: "",
-                    primaryAction: ""
-                }
-                : membershipStatus === "rejected"
-                    ? {
-                        accessMode: "rejected",
-                        title: "加入申请未通过",
-                        description: "可以修改申请说明后重新提交。",
-                        placeholder: "当前还不能发内容",
-                        primaryLabel: "重新申请加入",
-                        primaryAction: "submit-join-request"
-                    }
                     : isMembershipHydrating
                         ? {
                             accessMode: "syncing",
@@ -135,8 +118,10 @@ export const selectComposerPanelVM = (state) => {
                         : membershipStatus !== "approved"
                 ? {
                     accessMode: "join",
-                    title: "还没进入频道",
-                    description: "当前账号还没拿到频道成员身份。点一下会直接进入频道。",
+                    title: isLegacyJoinReviewState ? "进入当前频道" : "还没进入频道",
+                    description: isLegacyJoinReviewState
+                        ? "旧的申请审核状态已经失效。点一下会直接进入当前频道。"
+                        : "当前账号还没拿到频道成员身份。点一下会直接进入频道。",
                     placeholder: "进入频道后即可参与，当前无法发内容",
                     primaryLabel: "进入频道",
                     primaryAction: "submit-join-request"
