@@ -12,8 +12,11 @@ export const attachChannelMenuDialogEvents = ({ root, actions }) => {
         }
 
         if (action === "open-identity") {
+            const mode = button.dataset.identityMode || "channel";
             actions.closeOverlay("channel-menu");
-            actions.openOverlay("identity");
+            actions.openOverlay("identity", {
+                mode
+            });
             return;
         }
 

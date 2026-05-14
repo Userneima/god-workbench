@@ -21,7 +21,8 @@ export const createCacheApi = (context) => ({
             channel,
             auth: {
                 user: snapshot.user,
-                isAnonymous: snapshot.isAnonymous
+                isAnonymous: snapshot.isAnonymous,
+                profile: null
             },
             membership: cachedMember?.membership || {
                 status: "guest",

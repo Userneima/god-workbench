@@ -6,7 +6,7 @@ export const identityDialogTemplate = (vm) => `
         <div class="identity-dialog__panel">
             <header class="identity-dialog__header">
                 <div class="identity-dialog__header-copy">
-                    <h3>编辑频道身份</h3>
+                    <h3>${escapeHtml(vm.title || "编辑频道身份")}</h3>
                 </div>
                 <button class="identity-dialog__ghost" data-identity-action="close" type="button">
                     <span class="material-icons-outlined">close</span>
@@ -15,7 +15,7 @@ export const identityDialogTemplate = (vm) => `
             <div class="identity-dialog__body">
                 <div class="identity-dialog__avatar-group">
                     <div class="identity-dialog__avatar-shell">
-                        <img alt="${escapeHtml(vm.draftName || "频道身份头像")}" class="identity-dialog__avatar" data-ref="identity-avatar-preview" src="${vm.draftAvatar}" />
+                        <img alt="${escapeHtml(vm.draftName || (vm.mode === "account" ? "账号头像" : "频道身份头像"))}" class="identity-dialog__avatar" data-ref="identity-avatar-preview" src="${vm.draftAvatar}" />
                         <label class="identity-dialog__avatar-trigger">
                             <span class="material-icons-outlined">photo_camera</span>
                             <input accept="image/*" class="sr-only" data-ref="identity-avatar-input" type="file" />

@@ -60,7 +60,7 @@ export const mountIdentityDialogBlock = ({ root, store, actions }) => {
 
             if (refs?.avatarPreview) {
                 refs.avatarPreview.src = vm.draftAvatar;
-                refs.avatarPreview.alt = vm.draftName || "频道身份头像";
+                refs.avatarPreview.alt = vm.draftName || (vm.mode === "account" ? "账号头像" : "频道身份头像");
             }
 
             if (refs?.nameCount) {

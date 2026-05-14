@@ -221,15 +221,23 @@ export const applyOverlayActions = (draft, action) => {
         return true;
     case "identity/open":
         draft.overlayState.identity.open = true;
+        draft.overlayState.identity.mode = action.payload?.mode || "channel";
+        draft.overlayState.identity.title = action.payload?.title || "编辑频道身份";
         draft.overlayState.identity.saveStatus = "idle";
         draft.overlayState.identity.error = null;
-        draft.overlayState.identity.draftName = draft.runtimeState.realIdentity.name;
-        draft.overlayState.identity.draftAvatar = draft.runtimeState.realIdentity.avatar;
+        draft.overlayState.identity.sourceName = action.payload?.draftName || draft.runtimeState.realIdentity.name;
+        draft.overlayState.identity.sourceAvatar = action.payload?.draftAvatar || draft.runtimeState.realIdentity.avatar;
+        draft.overlayState.identity.draftName = action.payload?.draftName || draft.runtimeState.realIdentity.name;
+        draft.overlayState.identity.draftAvatar = action.payload?.draftAvatar || draft.runtimeState.realIdentity.avatar;
         return true;
     case "identity/close":
         draft.overlayState.identity.open = false;
+        draft.overlayState.identity.mode = "channel";
+        draft.overlayState.identity.title = "编辑频道身份";
         draft.overlayState.identity.saveStatus = "idle";
         draft.overlayState.identity.error = null;
+        draft.overlayState.identity.sourceName = draft.runtimeState.realIdentity.name;
+        draft.overlayState.identity.sourceAvatar = draft.runtimeState.realIdentity.avatar;
         draft.overlayState.identity.draftName = draft.runtimeState.realIdentity.name;
         draft.overlayState.identity.draftAvatar = draft.runtimeState.realIdentity.avatar;
         return true;
@@ -248,6 +256,8 @@ export const applyOverlayActions = (draft, action) => {
         draft.overlayState.identity.saveStatus = "idle";
         draft.overlayState.identity.open = false;
         draft.overlayState.identity.error = null;
+        draft.overlayState.identity.mode = "channel";
+        draft.overlayState.identity.title = "编辑频道身份";
         return true;
     case "auth-gate/open":
         draft.overlayState.authGate.open = true;

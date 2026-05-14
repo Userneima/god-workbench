@@ -24,6 +24,7 @@ const createMockDataService = () => ({
     publishPost: vi.fn(),
     publishComment: vi.fn(),
     updateIdentity: vi.fn(),
+    updateAccountProfile: vi.fn(),
     updateChannel: vi.fn(),
     updateChannelRoundState: vi.fn(),
     listRoundMemberStatuses: vi.fn(),
@@ -78,6 +79,28 @@ describe("sidebar nav account menu", () => {
         expect(store.getState().uiState.accountMenuOpen).toBe(true);
         block.render();
         expect(root.querySelector(".sidebar-nav__account-menu")).toBeTruthy();
+    });
+
+    it("uses account profile info in the footer and opens account profile editing", () => {
+        store.dispatch({
+            type: "auth/set-state",
+            payload: {
+                profileName: "王意超",
+                profileAvatar: "profile-avatar"
+            }
+        });
+        block.render();
+
+        expect(root.textContent).toContain("王意超");
+        expect(root.querySelector(".sidebar-nav__identity-avatar")?.getAttribute("src")).toBe("profile-avatar");
+
+        root.querySelector("[data-sidebar-action='toggle-account-menu']")?.click();
+        block.render();
+        root.querySelector("[data-sidebar-action='identity']")?.click();
+
+        expect(store.getState().overlayState.identity.open).toBe(true);
+        expect(store.getState().overlayState.identity.mode).toBe("account");
+        expect(store.getState().overlayState.identity.title).toBe("编辑账号资料");
     });
 
     it("shows a guest login trigger instead of a fake member identity", () => {

@@ -1,6 +1,11 @@
 export const createAuthSessionApi = (context) => ({
     async getAuthState() {
-        return context.getSessionSnapshot();
+        const snapshot = await context.getSessionSnapshot();
+        const profile = snapshot.user?.id ? await context.ensureProfile() : null;
+        return {
+            ...snapshot,
+            profile
+        };
     },
     async loginWithPassword(email, password) {
         const client = context.getSupabaseClient();
@@ -104,5 +109,36 @@ export const createAuthSessionApi = (context) => ({
         context.runtimeState.identity = null;
         context.runtimeState.aliasProfiles = [];
         return { user: null, isAnonymous: false };
+    },
+    async updateAccountProfile(input) {
+        const snapshot = await context.getSessionSnapshot();
+        if (!snapshot.user?.id || snapshot.isAnonymous) {
+            throw new Error("请先登录，再编辑账号资料。");
+        }
+
+        const client = context.getSupabaseClient();
+        const updatePayload = {
+            display_name: String(input.displayName || "").trim() || null
+        };
+
+        if (typeof input.avatarUrl === "string" && input.avatarUrl.trim()) {
+            updatePayload.avatar_url = input.avatarUrl.trim();
+        }
+
+        const { data, error } = await client
+            .from("profiles")
+            .update(updatePayload)
+            .eq("id", snapshot.user.id)
+            .select("id, display_name, avatar_url")
+            .single();
+
+        if (error) {
+            throw error;
+        }
+
+        return {
+            name: String(data.display_name || "").trim(),
+            avatar: String(data.avatar_url || "").trim()
+        };
     }
 });

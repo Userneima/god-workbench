@@ -110,7 +110,7 @@ export const sidebarNavTemplate = (vm) => `
                 <div class="sidebar-nav__account-menu">
                     <button class="sidebar-nav__account-action" data-sidebar-action="identity" type="button">
                         <span class="material-icons-outlined">badge</span>
-                        <span>身份设置</span>
+                        <span>账号资料</span>
                     </button>
                     ${vm.canLogout ? `
                         <button class="sidebar-nav__account-action" data-sidebar-action="logout" type="button">

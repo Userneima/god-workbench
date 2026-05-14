@@ -1,4 +1,5 @@
 import { channelShellConfig } from "../../entities/channel/config.js";
+import { defaultRealIdentity } from "../../entities/identity/config.js";
 import { runtimeConfig } from "../../shared/config/runtime-config.js";
 import { buildRoundDisplayTitle, buildRoundPrimaryLabel, formatRoundDateLabel } from "../../features/round/model.js";
 
@@ -24,8 +25,14 @@ export const selectSidebarNavVM = (state) => {
     const currentChannel = state.runtimeState.channel;
     const activeSlug = currentChannel?.slug;
     const isDemoMode = activeSlug === "demo";
-    const isAuthenticated = state.authState.status === "authenticated" && Boolean(state.authState.user?.id);
+    const isAuthenticated = Boolean(state.authState.user?.id) && !state.authState.isAnonymous;
     const showAuthenticatedState = isAuthenticated && !isDemoMode;
+    const accountDisplayName = String(
+        state.authState.profileName
+        || state.authState.user?.email?.split("@")[0]
+        || defaultRealIdentity.name
+    ).trim() || defaultRealIdentity.name;
+    const accountAvatar = String(state.authState.profileAvatar || "").trim() || defaultRealIdentity.avatar;
     const homeHref = "?";
     const currentRoundTitle = buildRoundDisplayTitle({
         title: state.roundState.title,
@@ -102,7 +109,10 @@ export const selectSidebarNavVM = (state) => {
         isDemoMode,
         demoHref: runtimeConfig.channelSlug ? `?channel=${encodeURIComponent(runtimeConfig.channelSlug)}` : "?view=directory",
         currentIdentity: showAuthenticatedState
-            ? state.runtimeState.realIdentity
+            ? {
+                name: accountDisplayName,
+                avatar: accountAvatar
+            }
             : {
                 name: isDemoMode ? "试玩模式" : "未登录",
                 avatar: currentChannel?.logoUrl || channelShellConfig.channelLogo

@@ -48,6 +48,8 @@ const applyBootstrapSnapshot = ({ store, bootstrap, source = "network", phase = 
                 status: "guest",
                 user: null,
                 isAnonymous: false,
+                profileName: "",
+                profileAvatar: "",
                 error: null,
                 password: ""
             }
@@ -74,6 +76,8 @@ const applyBootstrapSnapshot = ({ store, bootstrap, source = "network", phase = 
             status: "authenticated",
             user: auth.user,
             isAnonymous: false,
+            profileName: String(auth.profile?.display_name || auth.profile?.displayName || "").trim(),
+            profileAvatar: String(auth.profile?.avatar_url || auth.profile?.avatarUrl || "").trim(),
             error: null
         }
     });

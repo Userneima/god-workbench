@@ -135,6 +135,8 @@ export const applyRuntimeActions = (draft, action) => {
         draft.roundState.progress.guessSubmitted = Boolean(action.payload.guessSelection?.name);
         draft.overlayState.identity.draftName = action.payload.realIdentity.name;
         draft.overlayState.identity.draftAvatar = action.payload.realIdentity.avatar;
+        draft.overlayState.identity.sourceName = action.payload.realIdentity.name;
+        draft.overlayState.identity.sourceAvatar = action.payload.realIdentity.avatar;
         return true;
     case "runtime/initialize-error":
         draft.runtimeState.phase = "error";
@@ -153,6 +155,8 @@ export const applyRuntimeActions = (draft, action) => {
         draft.runtimeState.realIdentity = { ...draft.runtimeState.realIdentity, ...action.payload.identity };
         draft.overlayState.identity.draftName = draft.runtimeState.realIdentity.name;
         draft.overlayState.identity.draftAvatar = draft.runtimeState.realIdentity.avatar;
+        draft.overlayState.identity.sourceName = draft.runtimeState.realIdentity.name;
+        draft.overlayState.identity.sourceAvatar = draft.runtimeState.realIdentity.avatar;
         return true;
     case "runtime/update-channel":
         draft.runtimeState.channel = {

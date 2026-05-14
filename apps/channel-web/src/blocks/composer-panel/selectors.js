@@ -66,12 +66,13 @@ export const selectComposerPanelVM = (state) => {
     const audioDraft = state.composerState.audioDraft;
     const audioRecording = state.composerState.audioRecording;
     const authStatus = state.authState.status;
+    const hasAuthenticatedUser = Boolean(state.authState.user?.id) && !state.authState.isAnonymous;
     const membershipStatus = state.membershipState.status;
-    const isMembershipHydrating = authStatus === "authenticated"
+    const isMembershipHydrating = hasAuthenticatedUser
         && membershipStatus === "unknown"
         && state.runtimeState.phase === "hydrating";
     const isReadOnlyRound = Boolean(state.roundState.archiveViewerRoundId) || state.roundState.lifecycleStatus === "archived";
-    const canCompose = !isReadOnlyRound && membershipStatus === "approved" && authStatus === "authenticated";
+    const canCompose = !isReadOnlyRound && membershipStatus === "approved" && hasAuthenticatedUser;
     const canManageRound = membershipStatus === "approved"
         && ["owner", "admin"].includes(state.runtimeState.realIdentity.role);
     const isCurrentGod = (
@@ -85,7 +86,7 @@ export const selectComposerPanelVM = (state) => {
         name: "未登录",
         meta: "公开浏览模式"
     };
-    const gateByState = authStatus === "guest"
+    const gateByState = !hasAuthenticatedUser
         ? {
             accessMode: "guest",
             title: "登录后才能发帖",
@@ -226,7 +227,7 @@ export const selectComposerPanelVM = (state) => {
             && (!stage.requiresMention || Boolean(effectiveMentionTarget))
             && !audioRecording
             && state.composerState.submitStatus !== "submitting",
-        identityDisplay: authStatus !== "authenticated"
+        identityDisplay: !hasAuthenticatedUser
             ? guestIdentityDisplay
             : anonymousMode
             ? {

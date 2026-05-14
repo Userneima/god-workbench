@@ -15,9 +15,11 @@ export const createChannelBootstrapApi = (context) => ({
             }
         }
         const channel = context.normalizeChannel(channelRow);
+        const profile = snapshot.user?.id ? await context.ensureProfile() : null;
         const auth = {
             user: snapshot.user,
-            isAnonymous: snapshot.isAnonymous
+            isAnonymous: snapshot.isAnonymous,
+            profile
         };
 
         const membership = await context.buildMembershipSnapshot(channel.id, snapshot, {

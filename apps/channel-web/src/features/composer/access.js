@@ -2,8 +2,9 @@ export const ensureApprovedMember = (store, onGuest, onUnapproved) => {
     const state = store.getState();
     const authStatus = state.authState.status;
     const membershipStatus = state.membershipState.status;
+    const hasAuthenticatedUser = Boolean(state.authState.user?.id) && !state.authState.isAnonymous;
 
-    if (authStatus === "guest") {
+    if (!hasAuthenticatedUser && authStatus === "guest") {
         onGuest?.();
         return false;
     }

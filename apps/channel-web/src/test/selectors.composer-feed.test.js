@@ -7,6 +7,7 @@ describe("channel view model selectors: composer/feed", () => {
     it("builds anonymous composer vm for approved members", () => {
         const state = createInitialState();
         state.authState.status = "authenticated";
+        state.authState.user = { id: "user-1", email: "member@example.com" };
         state.membershipState.status = "approved";
         state.feedState.activeBoard = "wish";
         state.composerState.draftText = "我觉得匿名内容";
@@ -94,6 +95,26 @@ describe("channel view model selectors: composer/feed", () => {
         expect(vm.gate.accessMode).toBe("join");
         expect(vm.gate.primaryAction).toBe("submit-join-request");
         expect(vm.gate.primaryLabel).toBe("进入频道");
+    });
+
+    it("does not fall back to the login gate when a real user is already present", () => {
+        const state = createInitialState();
+        state.authState.status = "guest";
+        state.authState.user = { id: "user-1", email: "member@example.com" };
+        state.membershipState.status = "guest";
+        state.runtimeState.channel = {
+            id: "channel-1",
+            slug: "channel",
+            name: "频道",
+            joinPolicy: "open"
+        };
+
+        const vm = selectComposerPanelVM(state);
+
+        expect(vm.gate.accessMode).toBe("join");
+        expect(vm.gate.primaryAction).toBe("submit-join-request");
+        expect(vm.gate.primaryLabel).toBe("进入频道");
+        expect(vm.gate.primaryLabel).not.toBe("邮箱登录");
     });
 
     it("keeps the syncing hint only during runtime hydration", () => {

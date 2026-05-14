@@ -1,11 +1,12 @@
 export const selectIdentityDialogVM = (state) => {
     const overlay = state.overlayState.identity;
-    const realIdentity = state.runtimeState.realIdentity;
     const trimmedName = overlay.draftName.trim();
-    const hasChanged = trimmedName !== realIdentity.name || overlay.draftAvatar !== realIdentity.avatar;
+    const hasChanged = trimmedName !== overlay.sourceName || overlay.draftAvatar !== overlay.sourceAvatar;
 
     return {
         open: overlay.open,
+        title: overlay.title,
+        mode: overlay.mode,
         draftName: overlay.draftName,
         draftAvatar: overlay.draftAvatar,
         saveStatus: overlay.saveStatus,

@@ -1,7 +1,7 @@
 import { escapeHtml } from "../../shared/lib/helpers.js";
 
-const buildMenuRow = ({ action, label, suffix = "", avatar = "" }) => `
-    <button class="channel-menu-dialog__row" data-channel-menu-action="${action}" type="button">
+const buildMenuRow = ({ action, label, suffix = "", avatar = "", attributes = "" }) => `
+    <button class="channel-menu-dialog__row" data-channel-menu-action="${action}" ${attributes} type="button">
         <span class="channel-menu-dialog__row-label">${escapeHtml(label)}</span>
         <span class="channel-menu-dialog__row-tail">
             ${suffix ? `<span class="channel-menu-dialog__row-suffix">${escapeHtml(suffix)}</span>` : ""}
@@ -27,9 +27,10 @@ export const channelMenuDialogTemplate = (vm) => `
             <div class="channel-menu-dialog__stack">
                 ${buildMenuRow({
         action: "open-identity",
-        label: "本频道昵称和头像",
+        label: vm.identityLabel,
         suffix: vm.identityName,
-        avatar: vm.identityAvatar
+        avatar: vm.identityAvatar,
+        attributes: `data-identity-mode="${escapeHtml(vm.identityMode)}"`
     })}
                 ${vm.canManageAnonymous ? `
                     <button class="channel-menu-dialog__row" data-channel-menu-action="toggle-anonymous-reveal" type="button">

@@ -20,7 +20,9 @@ export const attachSidebarNavEvents = ({ root, actions }) => {
 
         if (action === "identity") {
             actions.setAccountMenuOpen(false);
-            actions.openOverlay("identity");
+            actions.openOverlay("identity", {
+                mode: "account"
+            });
             return;
         }
 

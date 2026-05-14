@@ -148,7 +148,7 @@ export const createAppActions = ({ store, dataService }) => {
                 return;
             }
             if (name === "identity") {
-                this.openIdentityDialog();
+                this.openIdentityDialog(payload);
                 return;
             }
             if (name === "channel-settings") {

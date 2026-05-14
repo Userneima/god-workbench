@@ -24,6 +24,7 @@ const createMockDataService = () => ({
     publishPost: vi.fn(),
     publishComment: vi.fn(),
     updateIdentity: vi.fn(),
+    updateAccountProfile: vi.fn(),
     updateChannel: vi.fn(),
     updateChannelRoundState: vi.fn(),
     listRoundMemberStatuses: vi.fn(),
