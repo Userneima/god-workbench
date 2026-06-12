@@ -1,54 +1,116 @@
-# Channel Project Guide
+# God Workbench Project Guide
 
-## Purpose
-- 正式维护入口只有 `apps/channel-web/`。
-- 目标是持续演进频道产品骨架，不回到原型式整页改动。
+## About This Project
+
+God Workbench is a lightweight web tool for the host of a recurring “King and Angel” game.
+
+The product is not a complete game platform. It should help the host manage information, reduce mistakes, and generate artifacts for WeChat/QQ workflows. The actual social play should remain in the existing chat groups.
 
 ## Working Defaults
-- 默认回复语言：Chinese
-- 代码、命令、变量：English
-- 结论先行，不说空话，不做无意义恭维
-- 能安全继续就直接检查、修改、验证，不把可执行步骤回退给用户
 
-## Repo Routing
-- 改界面：先看 `apps/channel-web/src/blocks/<block>/`
-- 改页面装配：看 `apps/channel-web/src/screens/`
-- 改行为编排：看 `apps/channel-web/src/features/`
-- 改状态：看 `apps/channel-web/src/shared/state/`
-- 改数据接入：看 `apps/channel-web/src/shared/data/`
-- 改运行时配置：看 `apps/channel-web/src/shared/config/`
-- 改结构规则：写进 `docs/architecture/`
-- `prototypes/` 只参考，不继续开发
+- Default response language: Chinese
+- Code, commands, variables: English
+- UX has priority over technical neatness
+- Prefer direct fixes over abstract refactors
+- Do not add explanatory UI copy unless the user explicitly asks for it
+- Keep the interface efficient, quiet, and emotionally appealing enough that the host wants to use it
 
-## Context Control
-- 默认先读源码，不默认吞多份文档
-- 纯 UI 视觉一致性任务：按需读 `docs/design/quiet-curator.md`
-- 架构/边界问题：按需只读一份对应的 `docs/architecture/*`
-- 非测试任务先不要把大测试文件整段读进上下文
-- 默认不要读 `apps/king-angel-mini/`、`prototypes/`、`docs/ai-handover/`、`apps/channel-web/dist/`，这些都不是当前主工作面
-- `apps/channel-web/data-service-support/core.js`、`src/features/round/actions.js`、`src/features/composer/index.js` 属于高上下文成本文件；只有任务直接命中这层边界时才读
+## Product Boundary
 
-## Product Constraints
-- 用户体验优先于技术洁癖
-- 保持安静、克制、偏编辑感
-- 浮层、弹窗、抽屉默认做小并贴近触发点
-- 不引入多余文案、辅助标签、浏览器默认白色 focus ring
+Build for the host first.
+
+Productize:
+
+- Reusable member roster
+- Round theme setup
+- Copy-ready host messages
+- Manual wish entry
+- Wish order management
+- Blind wish selection screenshots
+- Preventing self-selection
+- Last-step swap/manual assignment support
+- Completion observation
+- Reveal table generation
+- Round archive
+
+Do not productize as first-class product flows:
+
+- QQ anonymous completion process
+- WeChat guessing and teasing
+- Free-form hints from the host
+- In-group jokes, complaints, probes, and social atmosphere
+- Member-facing task check-in flows
+
+If a feature makes the game feel like a task management system, question it before implementing.
+
+## UX Principles
+
+- Design for the host’s actual sequence: set members, set theme, collect wishes, record wishes, guide blind selection, observe completion, reveal.
+- The left navigation should reflect game phases, not generic app sections.
+- Member roster is a low-frequency reusable setup, not a per-round task.
+- The system should absorb the Excel pain: hide self-wishes, restore previous wishes for the next chooser, track order, and make screenshot handoff easy.
+- Keep social interaction outside the product unless there is a strong reason to bring it in.
+- Interface text should be functional and compact. Avoid onboarding paragraphs and feature explanations inside the app.
+- Controls must look obviously editable or clickable. Inputs should read as inputs.
+- Do not ship inert buttons.
+
+## Visual Direction
+
+- The interface should feel like a polished host console, not a generic admin template.
+- Current direction: light glass dashboard, warm accent, soft spatial depth, restrained typography.
+- Avoid heavy black blocks, oversized titles, nested cards, and excessive rounded rectangles.
+- Use tables/lists with internal dividers when a full card treatment adds no value.
+- Font scale should stay modest because this is a repeated-use tool, not a landing page.
+
+## Code Structure
+
+- `src/main.js`: app entry
+- `src/screens/god-workbench/index.js`: UI rendering and event binding
+- `src/screens/god-workbench/model.js`: state model, game rules, export builders
+- `src/screens/god-workbench/styles.css`: screen styles
+- `src/lib/helpers.js`: tiny shared helpers
+- `src/test/`: Vitest coverage for core flows
+
+Keep the project small until the product direction demands otherwise.
+
+## Implementation Rules
+
+- Read existing code before modifying.
+- Preserve localStorage compatibility unless intentionally migrating data.
+- Add tests for rule changes, selection flow changes, export changes, and archive behavior.
+- Prefer simple browser-native UI over new dependencies.
+- Do not introduce a backend until the product needs multi-device persistence or shared host/member access.
+- Do not add authentication unless the workflow truly requires it.
+- Do not commit `dist/`, `node_modules/`, `.DS_Store`, secrets, or credentials.
 
 ## Validation
-- 功能改动后至少运行相关验证
-- 常用命令：
-  - `npm run test:web`
-  - `npm run build:web`
-  - `npm run check`
-  - `npm run audit:context`
-- 文档改动也要校对路径、命名、命令是否与仓库一致
 
-## Safety
-- 不写入 secrets 或 credentials
-- 不改无关文件
-- 高风险、不可逆、涉及权限/费用/删除数据时才停下来确认
+Run after meaningful changes:
 
-## Git
-- Commit message 用 English
-- 不要假设部署流程，先看项目文档
-- 未经明确要求，不执行 `git push`
+```bash
+npm run check
+```
+
+For visual/UI changes, also run the app and inspect the real page:
+
+```bash
+npm run dev
+```
+
+Then open:
+
+```text
+http://localhost:43174/
+```
+
+## Deployment
+
+This is a static Vite app.
+
+Build:
+
+```bash
+npm run build
+```
+
+Deploy the generated `dist/` directory to Tencent Cloud static hosting or another static hosting provider.

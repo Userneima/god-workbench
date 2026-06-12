@@ -1,26 +1,19 @@
 {
-  "name": "channel",
+  "name": "god-workbench",
+  "version": "0.1.0",
   "private": true,
+  "type": "module",
   "engines": {
-    "node": "20.x"
+    "node": ">=20"
   },
   "scripts": {
-    "dev": "vite --host localhost --port 43173",
-    "dev:web": "vite --host localhost --port 43173",
-    "build:web": "vite build",
-    "preview:web": "vite preview --host localhost --port 43173",
-    "test:core": "vitest run --config packages/king-angel-core/vitest.config.js",
-    "test:web": "vitest run --environment jsdom",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed",
-    "audit:context": "node scripts/context-audit.mjs",
-    "check": "npm run test:core && npm run test:web && npm run build:web"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.103.3"
+    "dev": "vite --host localhost --port 43174",
+    "build": "vite build",
+    "preview": "vite preview --host localhost --port 43174",
+    "test": "vitest run --config vite.config.js",
+    "check": "npm run test && npm run build"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
     "jsdom": "^26.1.0",
     "vite": "^6.3.5",
     "vitest": "^2.1.8"

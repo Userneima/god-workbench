@@ -1,0 +1,2068 @@
+.god-workbench {
+    --workbench-ink: #211d1d;
+    --workbench-rail: rgba(255, 255, 250, 0.58);
+    --workbench-panel: rgba(255, 255, 250, 0.62);
+    --workbench-panel-strong: rgba(255, 255, 250, 0.84);
+    --workbench-line: rgba(72, 59, 50, 0.12);
+    --workbench-soft: rgba(255, 255, 250, 0.46);
+    --workbench-accent: #ef873f;
+    --workbench-primary: #79513d;
+    --workbench-primary-soft: rgba(239, 135, 63, 0.16);
+    --workbench-glass-border: rgba(255, 255, 255, 0.66);
+    --workbench-glass-shadow: 0 1.4rem 4.2rem rgba(70, 52, 40, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    min-height: 100dvh;
+    display: grid;
+    grid-template-columns: 13.8rem minmax(0, 1fr);
+    background:
+        radial-gradient(circle at 26% 8%, rgba(255, 250, 226, 0.82), transparent 28rem),
+        radial-gradient(circle at 82% 9%, rgba(219, 235, 246, 0.88), transparent 30rem),
+        radial-gradient(circle at 62% 82%, rgba(255, 230, 208, 0.62), transparent 28rem),
+        linear-gradient(135deg, #f5f0e7 0%, #eef2f2 48%, #f7eee4 100%);
+    color: var(--workbench-ink);
+    font-variant-numeric: tabular-nums;
+    position: relative;
+    overflow-x: hidden;
+}
+
+.god-workbench::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.24) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+    background-size: 2.4rem 2.4rem;
+    opacity: 0.26;
+    mask-image: radial-gradient(circle at 54% 26%, black, transparent 72%);
+}
+
+.god-workbench__rail {
+    position: sticky;
+    top: 1rem;
+    z-index: 2;
+    height: calc(100dvh - 2rem);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 1.25rem;
+    margin: 1rem 0 1rem 1rem;
+    padding: 1rem 0.82rem;
+    border: 1px solid var(--workbench-glass-border);
+    border-radius: 1.35rem;
+    background: var(--workbench-rail);
+    box-shadow: var(--workbench-glass-shadow);
+    color: var(--workbench-ink);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+
+.god-workbench__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.72rem;
+    min-width: 0;
+}
+
+.god-workbench__brand span {
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.62rem;
+    background: rgba(255, 246, 232, 0.92);
+    color: var(--workbench-accent);
+    box-shadow: inset 0 0 0 1px rgba(239, 135, 63, 0.16);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.god-workbench__brand strong {
+    font-size: 0.94rem;
+    letter-spacing: 0;
+}
+
+.god-workbench__stages {
+    display: grid;
+    align-content: start;
+    gap: 1.15rem;
+}
+
+.god-workbench__rail-group {
+    display: grid;
+    gap: 0.42rem;
+}
+
+.god-workbench__rail-label {
+    padding: 0 0.62rem;
+    color: rgba(33, 29, 29, 0.42);
+    font-size: 0.66rem;
+    font-weight: 780;
+}
+
+.god-workbench__stage,
+.god-workbench__reset,
+.god-workbench__completion-row,
+.god-workbench__wish-choice,
+.god-workbench__actions button,
+.god-workbench__top-actions button,
+.god-workbench__inline-form button,
+.god-workbench__member-row button,
+.god-workbench__manual-row button,
+.god-workbench__archive-row button,
+.god-workbench__latest-assignment button {
+    border: 0;
+    color: inherit;
+}
+
+.god-workbench__stage {
+    position: relative;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.74rem 0.66rem;
+    border-radius: 0.72rem;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+}
+
+.god-workbench__stage.is-done {
+    color: rgba(33, 29, 29, 0.68);
+}
+
+.god-workbench__stage.is-done::before {
+    content: "";
+    position: absolute;
+    left: 0.32rem;
+    top: 50%;
+    width: 0.26rem;
+    height: 0.26rem;
+    border-radius: 50%;
+    background: rgba(239, 135, 63, 0.62);
+    transform: translateY(-50%);
+}
+
+.god-workbench__stage.is-pending {
+    opacity: 0.58;
+}
+
+.god-workbench__stage span,
+.god-workbench__panel-head span,
+.god-workbench__round-code,
+.god-workbench__muted {
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+}
+
+.god-workbench__stage span {
+    color: rgba(33, 29, 29, 0.52);
+}
+
+.god-workbench__stage strong {
+    font-size: 0.8rem;
+    font-weight: 760;
+}
+
+.god-workbench__stage.is-active {
+    background:
+        radial-gradient(circle at 12% 0%, rgba(255, 189, 118, 0.58), transparent 2.8rem),
+        var(--workbench-primary);
+    color: #fffaf4;
+    opacity: 1;
+    box-shadow: 0 0.9rem 2rem rgba(105, 72, 49, 0.18);
+}
+
+.god-workbench__stage.is-active span {
+    color: rgba(255, 250, 244, 0.72);
+}
+
+.god-workbench__stage:hover {
+    background: rgba(255, 255, 250, 0.48);
+}
+
+.god-workbench__stage:focus-visible {
+    box-shadow: 0 0 0 3px rgba(239, 135, 63, 0.2);
+    outline: 0;
+}
+
+.god-workbench__stage.is-active:hover {
+    background: var(--workbench-primary);
+}
+
+.god-workbench__reset {
+    height: 2.5rem;
+    border-radius: 0.7rem;
+    background: rgba(255, 255, 250, 0.48);
+    color: rgba(33, 29, 29, 0.68);
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+.god-workbench__reset:hover,
+.god-workbench__actions button:hover,
+.god-workbench__completion-row:hover,
+.god-workbench__top-actions button:hover,
+.god-workbench__member-row button:hover,
+.god-workbench__manual-row button:hover,
+.god-workbench__archive-row button:hover,
+.god-workbench__latest-assignment button:hover {
+    background: var(--workbench-primary-soft);
+}
+
+.god-workbench__rail .god-workbench__reset:hover {
+    background: rgba(255, 255, 250, 0.76);
+}
+
+.god-workbench__rail-actions {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.god-workbench__shell {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    padding: 1rem clamp(1rem, 3vw, 3rem) 2.7rem;
+}
+
+.god-workbench__topbar {
+    z-index: 5;
+    display: grid;
+    grid-template-columns: minmax(12rem, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    min-height: 3.8rem;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0.45rem 0.55rem 0.45rem 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.52);
+    border-radius: 1.45rem;
+    background: rgba(255, 255, 250, 0.4);
+    box-shadow: 0 1rem 3rem rgba(70, 52, 40, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.62);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+.god-workbench__top-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+}
+
+.god-workbench__top-actions span {
+    min-height: 1.95rem;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.6rem;
+    color: rgba(33, 29, 29, 0.58);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.god-workbench__top-actions button {
+    color: rgba(33, 29, 29, 0.66);
+}
+
+.god-workbench__more {
+    position: relative;
+}
+
+.god-workbench__more summary {
+    min-height: 1.95rem;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.64rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 250, 0.54);
+    color: rgba(33, 29, 29, 0.66);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 730;
+    list-style: none;
+}
+
+.god-workbench__more summary::-webkit-details-marker {
+    display: none;
+}
+
+.god-workbench__more[open] summary {
+    background: var(--workbench-primary-soft);
+    color: var(--workbench-ink);
+}
+
+.god-workbench__more > div {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    min-width: 8.5rem;
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.4rem;
+    border: 1px solid var(--workbench-line);
+    border-radius: 1rem;
+    background: var(--workbench-panel-strong);
+    box-shadow: var(--workbench-glass-shadow);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+.god-workbench__more button {
+    width: 100%;
+    justify-content: flex-start;
+}
+
+.god-workbench__more button:last-child {
+    color: var(--color-danger-ink);
+}
+
+.god-workbench h1,
+.god-workbench h2 {
+    margin: 0;
+    letter-spacing: 0;
+}
+
+.god-workbench h1 {
+    font-size: clamp(1.48rem, 2.05vw, 2.18rem);
+    line-height: 1.02;
+    font-weight: 860;
+}
+
+.god-workbench h2 {
+    font-size: 0.98rem;
+    line-height: 1.2;
+    font-weight: 790;
+}
+
+.god-workbench__round-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(7rem, 1fr));
+    gap: 0.55rem;
+}
+
+.god-workbench__panel--theme {
+    gap: 0.9rem;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 22% 8%, rgba(255, 246, 225, 0.84), transparent 18rem),
+        linear-gradient(135deg, rgba(239, 135, 63, 0.1), transparent 42%),
+        rgba(255, 255, 250, 0.68);
+}
+
+.god-workbench__panel--theme .god-workbench__panel-head {
+    align-items: end;
+}
+
+.god-workbench__panel--theme h2,
+.god-workbench__panel--reveal h2 {
+    font-size: clamp(1.42rem, 2.35vw, 2.38rem);
+    line-height: 1.02;
+    font-weight: 860;
+}
+
+.god-workbench__theme-field input {
+    height: clamp(3.9rem, 7.2vw, 5.5rem);
+    padding: 0 1rem;
+    border-color: rgba(121, 81, 61, 0.22);
+    background:
+        radial-gradient(circle at 12% 0%, rgba(255, 220, 176, 0.54), transparent 12rem),
+        rgba(255, 255, 250, 0.68);
+    color: var(--workbench-ink);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 0 0 1px rgba(255, 255, 255, 0.38);
+    font-size: clamp(1.6rem, 3.6vw, 3.15rem);
+    line-height: 1;
+    font-weight: 850;
+}
+
+.god-workbench__theme-field {
+    display: grid;
+    gap: 0.42rem;
+    padding: 0.72rem;
+    border: 1px solid rgba(255, 255, 255, 0.52);
+    border-radius: 1.2rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 250, 0.7), rgba(255, 255, 250, 0.44));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68);
+}
+
+.god-workbench__theme-field span,
+.god-workbench__theme-time span {
+    color: var(--color-text-muted);
+    font-size: 0.76rem;
+    font-weight: 760;
+}
+
+.god-workbench__theme-timeline {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.god-workbench__theme-time {
+    display: grid;
+    gap: 0.34rem;
+    min-width: 0;
+    padding: 0.64rem;
+    border: 1px solid rgba(255, 255, 255, 0.48);
+    border-radius: 1rem;
+    background: rgba(255, 255, 250, 0.48);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+.god-workbench__theme-time input {
+    height: 2.45rem;
+    border-color: rgba(72, 59, 50, 0.1);
+    background: rgba(255, 255, 250, 0.62);
+    font-weight: 760;
+}
+
+.god-workbench__message-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: 0.55rem;
+}
+
+.god-workbench__message-card {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.52);
+    border-radius: 1rem;
+    background: rgba(255, 255, 250, 0.52);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.god-workbench__message-card span {
+    display: block;
+    margin-bottom: 0.32rem;
+    color: var(--color-text-muted);
+    font-size: 0.76rem;
+    font-weight: 760;
+}
+
+.god-workbench__message-card p {
+    margin: 0;
+    color: var(--color-text);
+    font-size: clamp(0.94rem, 1.6vw, 1.22rem);
+    line-height: 1.48;
+    white-space: pre-line;
+}
+
+.god-workbench__message-card button {
+    min-height: 2.5rem;
+    padding: 0 0.9rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--workbench-primary);
+    color: #fffaf4;
+    font-size: 0.84rem;
+    font-weight: 790;
+}
+
+.god-workbench__field,
+.god-workbench__inline-form,
+.god-workbench__manual-row {
+    min-width: 0;
+}
+
+.god-workbench__field {
+    display: grid;
+    gap: 0.28rem;
+}
+
+.god-workbench__field span {
+    color: var(--color-text-muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.god-workbench input,
+.god-workbench textarea,
+.god-workbench select {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid rgba(72, 59, 50, 0.14);
+    border-radius: 1rem;
+    background: rgba(255, 255, 250, 0.5);
+    color: var(--workbench-ink);
+    font-size: 0.86rem;
+}
+
+.god-workbench input,
+.god-workbench select {
+    height: 2.35rem;
+    padding: 0 0.68rem;
+}
+
+.god-workbench textarea {
+    min-height: 5rem;
+    resize: vertical;
+    padding: 0.68rem;
+    line-height: 1.45;
+}
+
+.god-workbench input:focus,
+.god-workbench textarea:focus,
+.god-workbench select:focus {
+    border-color: rgba(239, 135, 63, 0.58);
+    box-shadow: 0 0 0 3px rgba(239, 135, 63, 0.15);
+    outline: 0;
+}
+
+.god-workbench__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+    max-width: 1180px;
+    margin: 1rem auto 0;
+}
+
+.god-workbench__panel {
+    min-width: 0;
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1rem, 2vw, 1.55rem);
+    border: 1px solid var(--workbench-glass-border);
+    border-radius: 1.35rem;
+    background: var(--workbench-panel);
+    box-shadow: var(--workbench-glass-shadow);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    scroll-margin-top: 1rem;
+}
+
+.god-workbench__panel--deferred {
+    display: none;
+}
+
+.god-workbench__panel--focus-support {
+    grid-column: 1;
+}
+
+.god-workbench__panel--wide {
+    grid-column: 1 / -1;
+}
+
+.god-workbench__panel--theme,
+.god-workbench__panel--round,
+.god-workbench__panel--wishes,
+.god-workbench__panel--completion,
+.god-workbench__panel--archives {
+    grid-column: 1;
+}
+
+.god-workbench__panel--wishes {
+    background:
+        radial-gradient(circle at 18% 6%, rgba(255, 246, 225, 0.72), transparent 18rem),
+        linear-gradient(135deg, rgba(239, 135, 63, 0.08), transparent 26rem),
+        rgba(255, 255, 250, 0.66);
+}
+
+.god-workbench__panel--completion {
+    background:
+        radial-gradient(circle at 16% 6%, rgba(226, 245, 240, 0.76), transparent 18rem),
+        linear-gradient(135deg, rgba(72, 185, 154, 0.08), transparent 24rem),
+        rgba(255, 255, 250, 0.66);
+}
+
+.god-workbench__panel--select {
+    grid-column: 1 / -1;
+    min-height: 29rem;
+    background:
+        radial-gradient(circle at 28% 2%, rgba(255, 246, 225, 0.82), transparent 20rem),
+        radial-gradient(circle at 76% 14%, rgba(224, 237, 247, 0.62), transparent 18rem),
+        rgba(255, 255, 250, 0.66);
+}
+
+.god-workbench__panel--select .god-workbench__panel-head--lead h2 {
+    max-width: 12ch;
+}
+
+.god-workbench__panel--manual,
+.god-workbench__panel--members {
+    grid-column: 2;
+}
+
+.god-workbench__panel--focus-support.god-workbench__panel--members,
+.god-workbench__panel--focus-support.god-workbench__panel--manual,
+.god-workbench__panel--focus-support.god-workbench__panel--round,
+.god-workbench__panel--focus-support.god-workbench__panel--archives {
+    grid-column: 1;
+}
+
+.god-workbench__panel--manual {
+    padding: 0.48rem;
+    gap: 0;
+}
+
+.god-workbench__panel--compact {
+    padding: 0.48rem;
+    gap: 0;
+}
+
+.god-workbench__panel--reveal {
+    grid-column: 1 / -1;
+}
+
+.god-workbench__panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 2rem;
+}
+
+.god-workbench__panel-head--lead {
+    align-items: end;
+    min-height: 3.4rem;
+}
+
+.god-workbench__panel-head--lead > div {
+    display: grid;
+    gap: 0.18rem;
+}
+
+.god-workbench__panel-head--lead h2 {
+    font-size: clamp(1.52rem, 2.5vw, 2.62rem);
+    line-height: 1.02;
+}
+
+.god-workbench__panel-head--lead > strong {
+    min-height: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.8rem;
+    border-radius: 999px;
+    background: var(--workbench-primary);
+    color: #fffaf4;
+    font-size: 0.92rem;
+}
+
+.god-workbench__wish-body {
+    max-width: 34rem;
+    line-height: 1.55;
+}
+
+.god-workbench__completion {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 1.62rem;
+    padding: 0 0.55rem;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+    font-size: 0.76rem;
+    font-weight: 750;
+}
+
+.god-workbench__completion--done {
+    background: rgba(72, 185, 154, 0.16);
+    color: #288268;
+}
+
+.god-workbench__completion--remind {
+    background: var(--color-danger-soft);
+    color: var(--color-danger-ink);
+}
+
+.god-workbench__completion--possible {
+    background: rgba(69, 78, 68, 0.12);
+    color: rgba(31, 36, 31, 0.72);
+}
+
+.god-workbench__completion-summary {
+    display: grid;
+    grid-template-columns: minmax(8rem, 0.32fr) minmax(0, 0.68fr);
+    gap: 0.55rem;
+}
+
+.god-workbench__completion-summary > div {
+    min-width: 0;
+    display: grid;
+    gap: 0.32rem;
+    align-content: center;
+    min-height: 4.7rem;
+    padding: 0.76rem;
+    border: 1px solid rgba(255, 255, 255, 0.48);
+    border-radius: 1rem;
+    background: var(--workbench-soft);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+.god-workbench__completion-summary > div:nth-child(2) {
+    min-height: 5.6rem;
+    background:
+        linear-gradient(90deg, rgba(239, 135, 63, 0.18), rgba(239, 135, 63, 0.055)),
+        rgba(255, 255, 250, 0.52);
+}
+
+.god-workbench__completion-summary span {
+    color: var(--color-text-muted);
+    font-size: 0.74rem;
+    font-weight: 740;
+}
+
+.god-workbench__completion-summary strong {
+    min-width: 0;
+    color: var(--workbench-ink);
+    font-size: 1.18rem;
+    line-height: 1.28;
+    font-weight: 820;
+}
+
+.god-workbench__completion-summary > div:nth-child(2) strong {
+    font-size: clamp(1.05rem, 1.75vw, 1.55rem);
+    line-height: 1.18;
+}
+
+.god-workbench__completion-board {
+    display: grid;
+    grid-template-columns: minmax(0, 0.68fr) minmax(14rem, 0.32fr);
+    gap: 0.55rem;
+}
+
+.god-workbench__completion-board section:first-child {
+    padding: 0.58rem;
+    border: 1px solid rgba(255, 255, 255, 0.44);
+    border-radius: 1rem;
+    background: rgba(255, 255, 250, 0.42);
+}
+
+.god-workbench__completion-board section {
+    min-width: 0;
+    display: grid;
+    align-content: start;
+    gap: 0.45rem;
+}
+
+.god-workbench__completion-board h3 {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.76rem;
+    font-weight: 780;
+}
+
+.god-workbench__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.god-workbench__actions button {
+    min-height: 1.95rem;
+    padding: 0 0.64rem;
+    border-radius: 999px;
+    background: var(--workbench-soft);
+    font-size: 0.78rem;
+    font-weight: 730;
+}
+
+.god-workbench__actions button:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+}
+
+.god-workbench__order-badge {
+    width: 1.8rem;
+    height: 1.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.72rem;
+    background: var(--workbench-accent);
+    color: #fffaf4;
+    font-size: 0.78rem;
+    font-weight: 780;
+}
+
+.god-workbench__top-actions button,
+.god-workbench__inline-form button,
+.god-workbench__message-card button,
+.god-workbench__member-row button,
+.god-workbench__manual-row button,
+.god-workbench__archive-row button,
+.god-workbench__latest-assignment button {
+    min-height: 1.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.64rem;
+    border-radius: 999px;
+    background: var(--workbench-soft);
+    font-size: 0.78rem;
+    font-weight: 730;
+    white-space: nowrap;
+}
+
+.god-workbench .god-workbench__theme-field input {
+    height: clamp(3.9rem, 7.2vw, 5.5rem);
+    padding: 0 1rem;
+    border-color: rgba(121, 81, 61, 0.22);
+    background:
+        radial-gradient(circle at 12% 0%, rgba(255, 220, 176, 0.54), transparent 12rem),
+        rgba(255, 255, 250, 0.68);
+    color: var(--workbench-ink);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 0 0 1px rgba(255, 255, 255, 0.38);
+    font-size: clamp(1.6rem, 3.6vw, 3.15rem);
+    line-height: 1;
+    font-weight: 860;
+}
+
+.god-workbench .god-workbench__message-card button {
+    min-height: 2.5rem;
+    padding: 0 0.9rem;
+    background: var(--workbench-primary);
+    color: #fffaf4;
+    font-size: 0.84rem;
+    font-weight: 790;
+}
+
+.god-workbench__inline-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.45rem;
+}
+
+.god-workbench__inline-form textarea {
+    min-height: 2.35rem;
+}
+
+.god-workbench__wish-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    min-height: 3.5rem;
+    padding: 0.76rem 0.84rem;
+    border: 1px solid rgba(255, 255, 255, 0.48);
+    border-radius: 1rem;
+    background:
+        linear-gradient(90deg, rgba(239, 135, 63, 0.16), rgba(255, 255, 250, 0.46)),
+        var(--workbench-soft);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+.god-workbench__wish-progress strong {
+    color: var(--workbench-ink);
+    font-size: 1.18rem;
+    font-weight: 850;
+}
+
+.god-workbench__wish-progress span {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    font-weight: 740;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.god-workbench__wish-progress button {
+    min-height: 1.95rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--workbench-panel-strong);
+    color: var(--workbench-ink);
+    font-size: 0.78rem;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.god-workbench__wish-progress button:hover {
+    background: var(--workbench-primary-soft);
+}
+
+.god-workbench__wish-ledger {
+    display: grid;
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.48);
+    border-radius: 1rem;
+    background: rgba(255, 255, 250, 0.46);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+.god-workbench__wish-ledger-item {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 0.22fr) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.72rem;
+    padding: 0.72rem 0.76rem;
+    border: 0;
+    border-top: 1px solid rgba(72, 59, 50, 0.09);
+    border-radius: 0;
+    background: transparent;
+}
+
+.god-workbench__wish-ledger-item:focus-within {
+    background: rgba(239, 135, 63, 0.06);
+}
+
+.god-workbench__wish-ledger-item:first-child {
+    border-top: 0;
+}
+
+.god-workbench__wish-ledger-item.is-empty {
+    background: rgba(255, 255, 252, 0.42);
+}
+
+.god-workbench__wish-rank {
+    display: grid;
+    gap: 0.18rem;
+}
+
+.god-workbench__wish-rank span,
+.god-workbench__wish-entry span {
+    color: var(--color-text-muted);
+    font-size: 0.74rem;
+    font-weight: 740;
+}
+
+.god-workbench__wish-rank strong {
+    color: var(--workbench-ink);
+    font-size: 1rem;
+    font-weight: 820;
+}
+
+.god-workbench__wish-entry {
+    min-width: 0;
+    display: grid;
+    gap: 0.24rem;
+}
+
+.god-workbench__wish-entry p {
+    margin: 0;
+    color: var(--color-text);
+    line-height: 1.48;
+}
+
+.god-workbench__wish-entry textarea {
+    min-height: 3.1rem;
+    background: rgba(255, 255, 250, 0.72);
+}
+
+.god-workbench__wish-tools {
+    justify-self: end;
+}
+
+.god-workbench__wish-tools .god-workbench__actions button:first-child {
+    background: var(--workbench-primary);
+    color: #fffaf4;
+}
+
+.god-workbench__wish-tools .god-workbench__actions button:not(:first-child) {
+    color: rgba(31, 36, 31, 0.72);
+}
+
+.god-workbench__member-list,
+.god-workbench__manual-list,
+.god-workbench__archive-list {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.god-workbench__panel--members {
+    background:
+        radial-gradient(circle at 18% 5%, rgba(255, 246, 225, 0.72), transparent 18rem),
+        linear-gradient(135deg, rgba(239, 135, 63, 0.07), transparent 22rem),
+        rgba(255, 255, 250, 0.66);
+}
+
+.god-workbench__panel--members .god-workbench__compact-panel {
+    gap: 0.82rem;
+}
+
+.god-workbench__panel--members .god-workbench__compact-panel[open] summary {
+    min-height: 3.25rem;
+    margin-bottom: 0;
+    padding: 0 0.18rem 0.72rem;
+    border-bottom: 1px solid rgba(72, 59, 50, 0.1);
+    border-radius: 0;
+    background: transparent;
+    color: var(--workbench-ink);
+}
+
+.god-workbench__panel--members .god-workbench__compact-panel[open] summary div span,
+.god-workbench__panel--members .god-workbench__compact-panel[open] summary > span {
+    color: var(--color-text-muted);
+}
+
+.god-workbench__panel--members .god-workbench__compact-panel[open] summary strong {
+    color: var(--workbench-ink);
+    font-size: clamp(1.15rem, 2.05vw, 1.58rem);
+    line-height: 1.04;
+}
+
+.god-workbench__member-setup {
+    display: grid;
+    grid-template-columns: minmax(14rem, 0.72fr) minmax(0, 1fr);
+    gap: 0.72rem;
+    align-items: start;
+}
+
+.god-workbench__panel--members .god-workbench__inline-form {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.42rem;
+    padding: 0.58rem;
+    border: 1px solid rgba(255, 255, 255, 0.52);
+    border-radius: 1.1rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 250, 0.72), rgba(255, 255, 250, 0.42));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.god-workbench__panel--members .god-workbench__inline-form textarea {
+    min-height: 5.75rem;
+    border-color: rgba(72, 59, 50, 0.1);
+    background: rgba(255, 255, 250, 0.54);
+}
+
+.god-workbench__panel--members .god-workbench__inline-form button {
+    align-self: end;
+    justify-self: end;
+    min-width: 5.2rem;
+    min-height: 2.55rem;
+    padding: 0 1rem;
+    background: var(--workbench-primary);
+    color: #fffaf4;
+}
+
+.god-workbench__panel--members .god-workbench__member-list {
+    gap: 0.38rem;
+    padding: 0.42rem;
+    border: 1px solid rgba(255, 255, 255, 0.52);
+    border-radius: 1.1rem;
+    background: rgba(255, 255, 250, 0.48);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.god-workbench__member-row,
+.god-workbench__archive-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.58rem;
+    min-height: 2.35rem;
+    padding: 0.24rem 0.24rem 0.24rem 0.5rem;
+    border-radius: 0.9rem;
+    background: var(--workbench-soft);
+    font-size: 0.86rem;
+}
+
+.god-workbench__panel--members .god-workbench__member-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    justify-content: initial;
+    min-height: 2.55rem;
+    border: 1px solid rgba(72, 59, 50, 0.07);
+    background: rgba(255, 255, 250, 0.64);
+}
+
+.god-workbench__member-order {
+    display: grid;
+    width: 1.7rem;
+    height: 1.7rem;
+    place-items: center;
+    border-radius: 0.72rem;
+    background: rgba(239, 135, 63, 0.13);
+    color: #9b552b;
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 820;
+}
+
+.god-workbench__panel--members .god-workbench__member-row strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--workbench-ink);
+    font-weight: 760;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.god-workbench__panel--members .god-workbench__member-row button {
+    min-width: 3.8rem;
+}
+
+.god-workbench__panel--members .god-workbench__stage-next {
+    width: 100%;
+    min-height: 2.65rem;
+}
+
+.god-workbench__archive-row strong {
+    color: var(--color-text-muted);
+    font-size: 0.76rem;
+}
+
+.god-workbench__stage-next {
+    min-height: 2.35rem;
+    border: 0;
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at 18% 0%, rgba(255, 189, 118, 0.5), transparent 6rem),
+        var(--workbench-primary);
+    color: #fffaf4;
+    font-size: 0.84rem;
+    font-weight: 780;
+    cursor: pointer;
+    transition: transform 160ms ease, background 160ms ease;
+}
+
+.god-workbench__stage-next:hover {
+    background: var(--workbench-accent);
+}
+
+.god-workbench__stage-next:active {
+    transform: translateY(1px);
+}
+
+.god-workbench__manual-row {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.god-workbench__manual-row span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.86rem;
+}
+
+.god-workbench__exception-panel {
+    min-width: 0;
+}
+
+.god-workbench__compact-panel {
+    min-width: 0;
+    display: grid;
+    gap: 0.55rem;
+}
+
+.god-workbench__exception-panel summary,
+.god-workbench__compact-panel summary {
+    min-height: 2.8rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 0.58rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.god-workbench__exception-panel summary::-webkit-details-marker,
+.god-workbench__compact-panel summary::-webkit-details-marker {
+    display: none;
+}
+
+.god-workbench__exception-panel summary:hover,
+.god-workbench__compact-panel summary:hover {
+    background: var(--workbench-soft);
+}
+
+.god-workbench__exception-panel summary div,
+.god-workbench__compact-panel summary div {
+    min-width: 0;
+    display: grid;
+    gap: 0.12rem;
+}
+
+.god-workbench__exception-panel summary div span,
+.god-workbench__exception-panel summary > span,
+.god-workbench__compact-panel summary div span,
+.god-workbench__compact-panel summary > span {
+    color: var(--color-text-muted);
+    font-size: 0.74rem;
+    font-weight: 740;
+}
+
+.god-workbench__exception-panel summary strong,
+.god-workbench__compact-panel summary strong {
+    color: var(--workbench-ink);
+    font-size: 0.94rem;
+}
+
+.god-workbench__exception-panel[open] summary,
+.god-workbench__compact-panel[open] summary {
+    margin-bottom: 0.45rem;
+    background: var(--workbench-primary-soft);
+}
+
+.god-workbench__muted-cell {
+    color: var(--color-text-muted);
+    font-weight: 700;
+}
+
+.god-workbench__queue {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+.god-workbench__selection-layout {
+    display: grid;
+    grid-template-columns: minmax(27rem, 0.64fr) minmax(15rem, 0.36fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.god-workbench__selection-side {
+    display: grid;
+    gap: 0.72rem;
+    position: sticky;
+    top: 1rem;
+}
+
+.god-workbench__handoff {
+    display: grid;
+    gap: 0.35rem;
+    min-height: 5.4rem;
+    align-content: center;
+    padding: 0.88rem;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    border-radius: 1.15rem;
+    background:
+        radial-gradient(circle at 22% 0%, rgba(255, 189, 118, 0.7), transparent 9rem),
+        linear-gradient(135deg, #a26a43 0%, var(--workbench-primary) 100%);
+    color: #fffaf4;
+    box-shadow: 0 1rem 2.4rem rgba(105, 72, 49, 0.14);
+}
+
+.god-workbench__handoff span {
+    color: rgba(255, 250, 244, 0.68);
+    font-size: 0.78rem;
+    font-weight: 760;
+}
+
+.god-workbench__handoff strong {
+    font-size: 1.82rem;
+    line-height: 1;
+    font-weight: 860;
+}
+
+.god-workbench__latest-assignment {
+    display: grid;
+    gap: 0.42rem;
+    padding: 0.72rem;
+    border: 1px solid rgba(239, 135, 63, 0.22);
+    border-radius: 1rem;
+    background: rgba(239, 135, 63, 0.08);
+}
+
+.god-workbench__latest-assignment span {
+    color: var(--color-text-muted);
+    font-size: 0.74rem;
+    font-weight: 750;
+}
+
+.god-workbench__latest-assignment strong {
+    color: var(--workbench-ink);
+    font-size: 0.98rem;
+    font-weight: 840;
+}
+
+.god-workbench__latest-assignment p {
+    margin: 0;
+    color: var(--color-text);
+    font-size: 0.84rem;
+    line-height: 1.46;
+}
+
+.god-workbench__latest-assignment button {
+    justify-self: start;
+    min-height: 1.95rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--workbench-panel-strong);
+    color: var(--workbench-ink);
+    font-size: 0.78rem;
+    font-weight: 750;
+}
+
+.god-workbench__swap-card {
+    display: grid;
+    gap: 0.48rem;
+    min-height: 10rem;
+    align-content: center;
+    padding: 1rem;
+    border: 1px solid rgba(239, 135, 63, 0.22);
+    border-radius: 1rem;
+    background: rgba(239, 135, 63, 0.08);
+}
+
+.god-workbench__swap-card span {
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+    font-weight: 760;
+}
+
+.god-workbench__swap-card strong {
+    color: var(--workbench-ink);
+    font-size: 1.15rem;
+    font-weight: 860;
+}
+
+.god-workbench__swap-card button {
+    justify-self: start;
+    min-height: 2.15rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--workbench-panel-strong);
+    color: var(--workbench-ink);
+    font-size: 0.8rem;
+    font-weight: 770;
+}
+
+.god-workbench__swap-card button:hover {
+    background: var(--workbench-primary-soft);
+}
+
+.god-workbench__queue-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    padding: 0.62rem 0.68rem;
+    border: 1px solid rgba(255, 255, 255, 0.36);
+    border-radius: 999px;
+    background: var(--workbench-soft);
+    font-size: 0.82rem;
+}
+
+.god-workbench__queue-item strong {
+    color: var(--color-text-muted);
+    font-size: 0.76rem;
+}
+
+.god-workbench__queue-item.is-active {
+    background: var(--workbench-primary);
+    color: #fffaf4;
+}
+
+.god-workbench__queue-item.is-active strong {
+    color: rgba(255, 250, 244, 0.68);
+}
+
+.god-workbench__queue-item.is-done {
+    background: rgba(69, 78, 68, 0.12);
+}
+
+.god-workbench__selection-side .god-workbench__actions button:first-child:not(:disabled) {
+    background:
+        radial-gradient(circle at 18% 0%, rgba(255, 189, 118, 0.5), transparent 6rem),
+        var(--workbench-primary);
+    color: #fffaf4;
+}
+
+.god-workbench__selection-side .god-workbench__host-primary {
+    flex: 1 0 100%;
+    min-height: 2.9rem;
+    font-size: 0.9rem;
+}
+
+.god-workbench__blind-list,
+.god-workbench__completion-list {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.god-workbench__screenshot-card {
+    display: grid;
+    gap: 0.92rem;
+    padding: 1.28rem;
+    border: 1px solid rgba(255, 255, 255, 0.56);
+    border-radius: 1.35rem;
+    background:
+        radial-gradient(circle at 16% 0%, rgba(255, 246, 225, 0.72), transparent 15rem),
+        linear-gradient(180deg, rgba(255, 255, 250, 0.76), rgba(255, 255, 250, 0.56));
+    box-shadow: 0 1.4rem 3rem rgba(78, 55, 48, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.66);
+}
+
+.god-workbench__screenshot-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    min-width: 0;
+    padding-bottom: 0.68rem;
+    border-bottom: 1px solid rgba(72, 59, 50, 0.1);
+}
+
+.god-workbench__screenshot-head span {
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+    font-weight: 750;
+}
+
+.god-workbench__screenshot-head strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.94rem;
+}
+
+.god-workbench__screenshot-title {
+    color: var(--color-text);
+    font-size: 1.14rem;
+    font-weight: 820;
+}
+
+.god-workbench__screenshot-options {
+    display: grid;
+    gap: 0.52rem;
+}
+
+.god-workbench__wish-choice {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 2.15rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.72rem;
+    min-height: 3.45rem;
+    padding: 0.78rem 0.84rem;
+    border: 1px solid rgba(72, 59, 50, 0.1);
+    border-radius: 1rem;
+    background: rgba(255, 255, 250, 0.64);
+    text-align: left;
+}
+
+.god-workbench__wish-choice span {
+    min-width: 0;
+    font-size: 0.98rem;
+    line-height: 1.46;
+}
+
+.god-workbench__wish-choice strong {
+    width: 2.15rem;
+    height: 2.15rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.72rem;
+    background: var(--workbench-accent);
+    color: #fffaf4;
+    font-size: 0.8rem;
+}
+
+.god-workbench__wish-choice:hover {
+    border-color: rgba(239, 135, 63, 0.34);
+    background: rgba(239, 135, 63, 0.07);
+}
+
+.god-workbench__empty {
+    display: flex;
+    align-items: center;
+    min-height: 3rem;
+    padding: 0 0.8rem;
+    border-radius: 1rem;
+    background: var(--workbench-soft);
+    color: var(--color-text-muted);
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+.god-workbench__completion-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 2.78rem;
+    padding: 0 0.68rem;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    border-radius: 1rem;
+    background: rgba(255, 255, 250, 0.52);
+    text-align: left;
+}
+
+.god-workbench__panel--completion .god-workbench__actions button {
+    background: var(--workbench-primary);
+    color: #fffaf4;
+}
+
+.god-workbench__reveal-list {
+    overflow: auto;
+    padding: 0 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.54);
+    border-radius: 1.2rem;
+    background: rgba(255, 255, 250, 0.52);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.god-workbench__panel--reveal {
+    background:
+        radial-gradient(circle at 20% 6%, rgba(255, 246, 225, 0.76), transparent 18rem),
+        linear-gradient(135deg, rgba(239, 135, 63, 0.1), transparent 28rem),
+        rgba(255, 255, 250, 0.66);
+}
+
+.god-workbench__panel--reveal .god-workbench__panel-head {
+    align-items: start;
+}
+
+.god-workbench__panel--reveal .god-workbench__actions {
+    justify-content: flex-end;
+}
+
+.god-workbench__panel--reveal .god-workbench__actions button:first-child,
+.god-workbench__panel--reveal .god-workbench__actions button:nth-child(4) {
+    background: var(--workbench-primary);
+    color: #fffaf4;
+}
+
+.god-workbench__panel--reveal .god-workbench__actions button:nth-child(n + 5) {
+    color: rgba(31, 36, 31, 0.66);
+}
+
+.god-workbench__reveal-table {
+    width: 100%;
+    min-width: 46rem;
+    border-collapse: collapse;
+}
+
+.god-workbench__reveal-table th,
+.god-workbench__reveal-table td {
+    padding: 0.92rem 0.9rem;
+    border-bottom: 1px solid rgba(72, 59, 50, 0.1);
+    text-align: left;
+    vertical-align: top;
+    font-size: 0.9rem;
+}
+
+.god-workbench__reveal-table th {
+    border-bottom: 1px solid rgba(72, 59, 50, 0.12);
+    background: transparent;
+    color: rgba(33, 29, 29, 0.52);
+    font-size: 0.74rem;
+    font-weight: 780;
+}
+
+.god-workbench__reveal-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.god-workbench__reveal-table td:first-child,
+.god-workbench__reveal-table td:nth-child(3),
+.god-workbench__reveal-table td:nth-child(4),
+.god-workbench__reveal-table td:nth-child(5) {
+    white-space: nowrap;
+    font-weight: 780;
+}
+
+.god-workbench__reveal-table td:nth-child(4) {
+    color: var(--workbench-accent);
+}
+
+.god-workbench__reveal-table td:first-child {
+    color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .god-workbench__stage,
+    .god-workbench__wish-choice,
+    .god-workbench__actions button,
+    .god-workbench__completion-row,
+    .god-workbench__reset,
+    .god-workbench__exception-panel summary,
+    .god-workbench__compact-panel summary,
+    .god-workbench__more summary,
+    .god-workbench__top-actions button,
+    .god-workbench__member-row button,
+    .god-workbench__manual-row button,
+    .god-workbench__archive-row button,
+    .god-workbench__latest-assignment button {
+        transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+    }
+
+    .god-workbench__wish-choice:hover {
+        transform: translateY(-1px);
+    }
+
+    .god-workbench button:active {
+        transform: translateY(1px);
+    }
+}
+
+@media (max-width: 1120px) {
+    .god-workbench {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .god-workbench__rail {
+        position: static;
+        height: auto;
+        margin: 0.8rem 0.8rem 0;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-rows: auto;
+        align-items: center;
+        border-right: 1px solid var(--workbench-glass-border);
+    }
+
+    .god-workbench__stages {
+        display: flex;
+        gap: 0.75rem;
+        overflow-x: auto;
+    }
+
+    .god-workbench__rail-group {
+        display: flex;
+        align-items: center;
+        gap: 0.42rem;
+    }
+
+    .god-workbench__rail-label {
+        flex: 0 0 auto;
+        padding: 0 0.2rem;
+    }
+
+    .god-workbench__stage {
+        min-width: 7rem;
+    }
+
+    .god-workbench__grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .god-workbench__panel--theme,
+    .god-workbench__panel--round,
+    .god-workbench__panel--wishes,
+    .god-workbench__panel--select,
+    .god-workbench__panel--manual,
+    .god-workbench__panel--completion,
+    .god-workbench__panel--members,
+    .god-workbench__panel--archives,
+    .god-workbench__panel--reveal {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
+    .god-workbench__panel--select {
+        position: static;
+    }
+
+    .god-workbench__topbar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .god-workbench__top-actions {
+        justify-content: flex-start;
+    }
+
+    .god-workbench__round-form {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .god-workbench__message-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+}
+
+@media (max-width: 720px) {
+    .god-workbench {
+        display: block;
+    }
+
+    .god-workbench__shell {
+        padding: 0.68rem 0.68rem 1.4rem;
+    }
+
+    .god-workbench__rail {
+        margin: 0;
+        padding: 0.56rem 0.6rem 0.5rem;
+        border: 0;
+        border-radius: 0;
+    }
+
+    .god-workbench__rail {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        height: 3.35rem;
+        display: flex;
+        align-items: center;
+        gap: 0.42rem;
+        overflow: hidden;
+        box-shadow: 0 0.75rem 2rem rgba(70, 52, 40, 0.1);
+    }
+
+    .god-workbench__brand span {
+        width: 1.55rem;
+        height: 1.55rem;
+        border-radius: 0.4rem;
+        font-size: 0.72rem;
+    }
+
+    .god-workbench__brand strong {
+        display: none;
+    }
+
+    .god-workbench__stages {
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        gap: 0.34rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        scroll-snap-type: x proximity;
+    }
+
+    .god-workbench__stages::-webkit-scrollbar {
+        display: none;
+    }
+
+    .god-workbench__rail-group {
+        gap: 0.34rem;
+    }
+
+    .god-workbench__rail-label {
+        display: none;
+    }
+
+    .god-workbench__stage {
+        width: auto;
+        grid-template-columns: auto auto;
+        min-width: max-content;
+        flex: 0 0 auto;
+        padding: 0.38rem 0.46rem;
+        border-radius: 999px;
+        scroll-snap-align: start;
+    }
+
+    .god-workbench__stage.is-done::before {
+        display: none;
+    }
+
+    .god-workbench__stage span,
+    .god-workbench__stage strong {
+        font-size: 0.68rem;
+        white-space: nowrap;
+    }
+
+    .god-workbench__topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        min-height: auto;
+        padding: 0.62rem 0.7rem;
+        border-radius: 1.1rem;
+    }
+
+    .god-workbench__topbar > div:first-child {
+        min-width: 0;
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+    }
+
+    .god-workbench__round-code {
+        flex: 0 0 auto;
+    }
+
+    .god-workbench h1 {
+        overflow: hidden;
+        font-size: 1.05rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .god-workbench__top-actions {
+        flex: 0 0 auto;
+        gap: 0.35rem;
+    }
+
+    .god-workbench__top-actions span {
+        display: none;
+    }
+
+    .god-workbench__top-actions button {
+        min-height: 2.15rem;
+    }
+
+    .god-workbench__panel-head--lead {
+        align-items: start;
+    }
+
+    .god-workbench__panel-head--lead h2 {
+        font-size: 1.36rem;
+        max-width: none;
+    }
+
+    .god-workbench__panel-head--lead > strong {
+        min-height: 2rem;
+        font-size: 0.82rem;
+    }
+
+    .god-workbench__selection-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .god-workbench__selection-side {
+        position: static;
+        gap: 0.55rem;
+    }
+
+    .god-workbench__handoff {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: baseline;
+        gap: 0.7rem;
+        min-height: 3.35rem;
+        padding: 0 0.78rem;
+    }
+
+    .god-workbench__handoff strong {
+        min-width: 0;
+        overflow: hidden;
+        font-size: 1.24rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .god-workbench__round-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .god-workbench__panel {
+        padding: 0.82rem;
+        border-radius: 1.1rem;
+    }
+
+    .god-workbench__panel--theme h2,
+    .god-workbench__panel--reveal h2 {
+        font-size: 1.52rem;
+    }
+
+    .god-workbench .god-workbench__theme-field input {
+        height: 3.8rem;
+        font-size: 1.72rem;
+    }
+
+    .god-workbench__theme-timeline {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.42rem;
+    }
+
+    .god-workbench__theme-time {
+        padding: 0.54rem;
+    }
+
+    .god-workbench__theme-time input {
+        height: 2.35rem;
+    }
+
+    .god-workbench__message-card {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .god-workbench .god-workbench__message-card button {
+        width: 100%;
+    }
+
+    .god-workbench__manual-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .god-workbench__panel--members .god-workbench__compact-panel[open] summary {
+        min-height: 3.35rem;
+        padding: 0 0.28rem 0.7rem;
+    }
+
+    .god-workbench__panel--members .god-workbench__compact-panel[open] summary strong {
+        font-size: 1.12rem;
+    }
+
+    .god-workbench__member-setup {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .god-workbench__panel--members .god-workbench__inline-form {
+        padding: 0.42rem;
+    }
+
+    .god-workbench__panel--members .god-workbench__inline-form textarea {
+        min-height: 4.6rem;
+    }
+
+    .god-workbench__panel--members .god-workbench__inline-form button {
+        justify-self: stretch;
+        min-height: 2.65rem;
+    }
+
+    .god-workbench__wish-progress {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 0.55rem;
+        min-height: 3.25rem;
+        padding: 0.58rem 0.66rem;
+        justify-content: stretch;
+    }
+
+    .god-workbench__wish-progress strong {
+        font-size: 1.08rem;
+    }
+
+    .god-workbench__wish-progress span {
+        font-size: 0.76rem;
+        white-space: nowrap;
+    }
+
+    .god-workbench__wish-progress button {
+        min-height: 2rem;
+        padding: 0 0.58rem;
+    }
+
+    .god-workbench__wish-ledger-item {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        gap: 0.42rem;
+        padding: 0.66rem 0.62rem;
+    }
+
+    .god-workbench__wish-tools {
+        justify-self: stretch;
+        width: 100%;
+    }
+
+    .god-workbench__wish-rank {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: baseline;
+        column-gap: 0.55rem;
+    }
+
+    .god-workbench__wish-rank strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .god-workbench__wish-entry textarea {
+        min-height: 2.82rem;
+        padding: 0.58rem 0.62rem;
+    }
+
+    .god-workbench__wish-entry span {
+        font-size: 0.7rem;
+    }
+
+    .god-workbench__wish-tools .god-workbench__actions {
+        display: grid;
+        grid-template-columns: minmax(4.2rem, 0.92fr) repeat(3, minmax(3.6rem, 0.68fr));
+        gap: 0.32rem;
+    }
+
+    .god-workbench__wish-tools .god-workbench__actions button {
+        min-height: 2.06rem;
+        padding: 0 0.42rem;
+        font-size: 0.74rem;
+    }
+
+    .god-workbench__completion-summary,
+    .god-workbench__completion-board {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .god-workbench__screenshot-card {
+        gap: 0.68rem;
+        padding: 0.88rem;
+    }
+
+    .god-workbench__screenshot-title {
+        font-size: 1.02rem;
+    }
+
+    .god-workbench__wish-choice {
+        grid-template-columns: 1.95rem minmax(0, 1fr);
+        min-height: 3.15rem;
+        padding: 0.64rem;
+    }
+
+    .god-workbench__wish-choice strong {
+        width: 1.95rem;
+        height: 1.95rem;
+    }
+
+    .god-workbench__wish-choice span {
+        font-size: 0.92rem;
+    }
+
+    .god-workbench__selection-side .god-workbench__actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .god-workbench__selection-side .god-workbench__host-primary {
+        grid-column: 1 / -1;
+    }
+
+    .god-workbench__panel--reveal .god-workbench__panel-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        gap: 0.6rem;
+    }
+
+    .god-workbench__panel--reveal .god-workbench__actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        justify-content: stretch;
+        gap: 0.36rem;
+        width: 100%;
+    }
+
+    .god-workbench__panel--reveal .god-workbench__actions button {
+        min-height: 2.18rem;
+        padding: 0 0.42rem;
+        font-size: 0.72rem;
+    }
+
+    .god-workbench__panel--reveal .god-workbench__actions button:nth-child(1),
+    .god-workbench__panel--reveal .god-workbench__actions button:nth-child(4) {
+        grid-column: span 1;
+    }
+
+    .god-workbench__reveal-table {
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    .god-workbench__reveal-table th,
+    .god-workbench__reveal-table td {
+        padding: 0.62rem 0.5rem;
+        font-size: 0.76rem;
+        white-space: normal;
+    }
+
+    .god-workbench__reveal-table th:first-child,
+    .god-workbench__reveal-table td:first-child {
+        width: 2.45rem;
+    }
+
+    .god-workbench__reveal-table th:nth-child(3),
+    .god-workbench__reveal-table th:nth-child(4),
+    .god-workbench__reveal-table th:nth-child(5),
+    .god-workbench__reveal-table td:nth-child(3),
+    .god-workbench__reveal-table td:nth-child(4),
+    .god-workbench__reveal-table td:nth-child(5) {
+        width: 3.15rem;
+    }
+
+}

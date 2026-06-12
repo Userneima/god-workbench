@@ -1,1 +1,0 @@
--- Remote history placeholder to keep local migration history aligned with the linked Supabase project.

@@ -1,4 +1,0 @@
-<view class="empty panel">
-  <view class="empty-title">{{title}}</view>
-  <view class="empty-body">{{body}}</view>
-</view>

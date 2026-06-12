@@ -1,14 +1,5 @@
-.DS_Store
 node_modules/
-apps/channel-web/dist/
 dist/
-supabase/.temp/
-.env
-.env.local
-.env.*.local
-supabase/functions/.env
-.vercel/
-playwright-report/
-test-results/
-docs/product/*.pdf
-scripts/*-shortcut.applescript
+.vite/
+.DS_Store
+*.log

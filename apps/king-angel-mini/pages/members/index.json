@@ -1,6 +1,0 @@
-{
-  "usingComponents": {
-    "member-row": "../../components/member-row/index"
-  },
-  "navigationBarTitleText": "游戏成员"
-}
