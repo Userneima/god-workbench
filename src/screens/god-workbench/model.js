@@ -1,6 +1,10 @@
 const STORAGE_KEY = "soulmap.god-workbench.v2";
 const MEMBER_ROSTER_KEY = "soulmap.god-workbench.member-roster.v1";
 const STATE_VERSION = 2;
+const BACKUP_VERSION = 1;
+const BACKUP_APP_ID = "god-workbench";
+const DEFAULT_WISH_REMINDER_TEMPLATE = "某某，这周主题是：XX，你还没许愿哦。";
+export const REVEAL_STATUS_HEADER = "愿望完成状态";
 
 export const selectionStatusLabels = {
     pending: "待审",
@@ -8,13 +12,11 @@ export const selectionStatusLabels = {
     rejected: "退回"
 };
 
-export const completionStatuses = ["unseen", "possible", "done", "remind"];
+export const completionStatuses = ["pending", "done"];
 
 export const completionStatusLabels = {
-    unseen: "未观察到",
-    possible: "可能完成",
-    done: "已完成",
-    remind: "需提醒"
+    pending: "未完成",
+    done: "已完成"
 };
 
 const defaultParticipants = [];
@@ -41,9 +43,11 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 
 const canUseLocalStorage = () => typeof window !== "undefined" && Boolean(window.localStorage);
 
+const normalizeCompletionStatus = (status) => status === "done" ? "done" : "pending";
+
 const createCompletionMap = (participants, overrides = {}) => Object.fromEntries(participants.map((participant) => [
     participant.id,
-    completionStatuses.includes(overrides[participant.id]) ? overrides[participant.id] : "unseen"
+    normalizeCompletionStatus(overrides[participant.id])
 ]));
 
 const toLocalIsoDate = (date = new Date()) => {
@@ -102,19 +106,6 @@ export const saveMemberRoster = (participants) => {
     window.localStorage.setItem(MEMBER_ROSTER_KEY, JSON.stringify(normalizeParticipants(participants)));
 };
 
-const getFallbackSelectionOrder = (participants, sourceOrder = []) => {
-    const participantIds = new Set(participants.map((participant) => participant.id));
-    const safeSourceOrder = Array.isArray(sourceOrder)
-        ? sourceOrder.filter((participantId) => participantIds.has(participantId))
-        : [];
-    return [
-        ...safeSourceOrder,
-        ...participants
-            .map((participant) => participant.id)
-            .filter((participantId) => !safeSourceOrder.includes(participantId))
-    ];
-};
-
 export const getSelectionOrderFromWishes = (participants, wishes) => {
     const participantIds = new Set(participants.map((participant) => participant.id));
     const seenOwnerIds = new Set();
@@ -149,6 +140,7 @@ export const createInitialWorkbenchState = () => {
             theme: "",
             god: "",
             themeSetDate: toLocalIsoDate(),
+            wishReminderTemplate: DEFAULT_WISH_REMINDER_TEMPLATE,
             ...getDefaultRoundDeadlines()
         },
         participants,
@@ -170,7 +162,7 @@ export const createSampleWorkbenchState = () => {
         round: {
             code: "04",
             theme: "夏日",
-            god: "章鱼烧",
+            god: "白榆",
             themeSetDate: toLocalIsoDate(),
             ...getDefaultRoundDeadlines()
         },
@@ -178,11 +170,11 @@ export const createSampleWorkbenchState = () => {
         wishes,
         selectionOrder: getSelectionOrderFromWishes(participants, wishes),
         completionByParticipantId: {
-            p1: "unseen",
-            p2: "unseen",
-            p3: "possible",
+            p1: "pending",
+            p2: "pending",
+            p3: "pending",
             p4: "done",
-            p5: "remind"
+            p5: "pending"
         }
     });
 };
@@ -190,6 +182,13 @@ export const createSampleWorkbenchState = () => {
 export const getParticipantName = (state, participantId) => (
     state.participants.find((participant) => participant.id === participantId)?.name || "未知"
 );
+
+export const getRoundPlayerParticipants = (state) => {
+    const godName = String(state.round?.god || "").trim();
+    return state.participants.filter((participant) => participant.name !== godName);
+};
+
+export const getRoundPlayerIds = (state) => new Set(getRoundPlayerParticipants(state).map((participant) => participant.id));
 
 export const getWishById = (state, wishId) => state.wishes.find((wish) => wish.id === wishId) || null;
 
@@ -200,6 +199,18 @@ export const getSubmittedWishOwnerIds = (wishes) => new Set(
         .filter((wish) => wish.status === "approved")
         .map((wish) => wish.ownerId)
 );
+
+export const getRoundApprovedWishes = (state) => {
+    const roundPlayerIds = getRoundPlayerIds(state);
+    return state.wishes.filter((wish) => wish.status === "approved" && roundPlayerIds.has(wish.ownerId));
+};
+
+export const getSelectionParticipants = (state) => {
+    const participantById = new Map(state.participants.map((participant) => [participant.id, participant]));
+    return state.selectionOrder
+        .map((participantId) => participantById.get(participantId))
+        .filter(Boolean);
+};
 
 const normalizeWishes = (wishes, participantIds) => (
     Array.isArray(wishes)
@@ -222,26 +233,36 @@ export const normalizeWorkbenchState = (rawState) => {
     const participantIds = new Set(safeParticipants.map((participant) => participant.id));
     const wishes = normalizeWishes(source.wishes, participantIds);
     const safeWishes = Object.hasOwn(source, "wishes") ? wishes : clone(fallback.wishes);
-    const wishIds = new Set(safeWishes.map((wish) => wish.id));
+    const safeRound = {
+        ...fallback.round,
+        ...(source.round && typeof source.round === "object" ? source.round : {})
+    };
+    if (safeRound.god && !safeParticipants.some((participant) => participant.name === safeRound.god)) {
+        safeRound.god = "";
+    }
+    const roundParticipantIds = new Set(safeParticipants
+        .filter((participant) => participant.name !== safeRound.god)
+        .map((participant) => participant.id));
+    const storedWishIds = new Set(safeWishes.map((wish) => wish.id));
     const assignments = Array.isArray(source.assignments)
         ? source.assignments
-            .filter((assignment) => participantIds.has(assignment.angelId) && wishIds.has(assignment.wishId))
+            .filter((assignment) => participantIds.has(assignment.angelId) && storedWishIds.has(assignment.wishId))
             .filter((assignment, index, list) => (
                 list.findIndex((item) => item.angelId === assignment.angelId || item.wishId === assignment.wishId) === index
             ))
             .map((assignment) => ({ angelId: String(assignment.angelId), wishId: String(assignment.wishId) }))
         : [];
-    const selectionOrder = getSelectionOrderFromWishes(safeParticipants, safeWishes);
+    const roundParticipants = safeParticipants.filter((participant) => roundParticipantIds.has(participant.id));
+    const selectionOrder = getSelectionOrderFromWishes(roundParticipants, safeWishes);
     const safeSelectionOrder = selectionOrder.length
         ? selectionOrder
-        : getFallbackSelectionOrder(safeParticipants, source.selectionOrder);
+        : (Array.isArray(source.selectionOrder) ? source.selectionOrder.filter((participantId) => (
+            roundParticipantIds.has(participantId) && safeWishes.some((wish) => wish.ownerId === participantId)
+        )) : []);
 
     return {
         version: STATE_VERSION,
-        round: {
-            ...fallback.round,
-            ...(source.round && typeof source.round === "object" ? source.round : {})
-        },
+        round: safeRound,
         participants: safeParticipants,
         wishes: safeWishes,
         selectionOrder: safeSelectionOrder,
@@ -261,19 +282,14 @@ export const applyMemberRoster = (state, participants) => {
     return normalizeWorkbenchState({
         ...state,
         participants: roster,
-        selectionOrder: [
-            ...state.selectionOrder.filter((participantId) => (
-                roster.some((participant) => participant.id === participantId)
-            )),
-            ...roster
-                .map((participant) => participant.id)
-                .filter((participantId) => !state.selectionOrder.includes(participantId))
-        ],
+        selectionOrder: state.selectionOrder.filter((participantId) => (
+            roster.some((participant) => participant.id === participantId)
+        )),
         completionByParticipantId: {
             ...state.completionByParticipantId,
             ...Object.fromEntries(roster.map((participant) => [
                 participant.id,
-                state.completionByParticipantId?.[participant.id] || "unseen"
+                normalizeCompletionStatus(state.completionByParticipantId?.[participant.id])
             ]))
         }
     });
@@ -300,6 +316,20 @@ export const saveWorkbenchState = (state) => {
 
 export const clearWorkbenchState = () => {
     window.localStorage.removeItem(STORAGE_KEY);
+};
+
+export const buildWorkbenchBackup = (state) => {
+    const safeState = normalizeWorkbenchState(state);
+    return JSON.stringify({
+        app: BACKUP_APP_ID,
+        backupVersion: BACKUP_VERSION,
+        exportedAt: new Date().toISOString(),
+        state: {
+            ...safeState,
+            toast: ""
+        },
+        memberRoster: normalizeParticipants(safeState.participants)
+    }, null, 2);
 };
 
 const fillMissingRoundDeadlines = (round, defaults) => ({
@@ -338,26 +368,39 @@ export const buildThemeAnnouncement = (state) => {
 
 export const buildWishCollectionFollowup = (state) => {
     const submittedOwnerIds = getSubmittedWishOwnerIds(state.wishes);
-    const missingParticipants = state.participants.filter((participant) => !submittedOwnerIds.has(participant.id));
+    const missingParticipants = getRoundPlayerParticipants(state).filter((participant) => !submittedOwnerIds.has(participant.id));
     if (!missingParticipants.length) {
         return "本轮愿望已收齐。";
     }
     return `还差 ${missingParticipants.map((participant) => participant.name).join("、")} 的愿望。`;
 };
 
+export const getWishReminderTemplate = (state) => (
+    String(state.round.wishReminderTemplate || "").trim() || DEFAULT_WISH_REMINDER_TEMPLATE
+);
+
+export const buildSingleWishReminder = (state, participantId) => {
+    const participantName = getParticipantName(state, participantId);
+    const theme = String(state.round.theme || "").trim() || "未命名";
+    const template = getWishReminderTemplate(state);
+    const withName = template.includes("某某")
+        ? template.replaceAll("某某", participantName)
+        : `${participantName}，${template}`;
+    return withName.includes("XX")
+        ? withName.replaceAll("XX", theme)
+        : withName;
+};
+
 export const buildCompletionReminder = () => "还没完成国王愿望的抓紧了哦，我们快要开始猜人了。";
 
 export const buildCompletionFollowup = (state) => {
-    const reminderParticipants = state.participants.filter((participant) => (
+    const reminderParticipants = getSelectionParticipants(state).filter((participant) => (
         state.completionByParticipantId[participant.id] !== "done"
     ));
     if (!reminderParticipants.length) {
         return "本轮国王愿望都已完成。";
     }
-    return [
-        buildCompletionReminder(),
-        `待确认：${reminderParticipants.map((participant) => participant.name).join("、")}`
-    ].join("\n");
+    return buildCompletionReminder();
 };
 
 export const addParticipant = (state, name) => {
@@ -372,10 +415,9 @@ export const addParticipant = (state, name) => {
     return normalizeWorkbenchState({
         ...state,
         participants: [...state.participants, participant],
-        selectionOrder: [...state.selectionOrder, participant.id],
         completionByParticipantId: {
             ...state.completionByParticipantId,
-            [participant.id]: "unseen"
+            [participant.id]: "pending"
         },
         toast: "已添加"
     });
@@ -397,6 +439,9 @@ export const addWish = (state, { ownerId, body }) => {
     const safeBody = String(body || "").trim();
     if (!ownerId || !safeBody) {
         return { ...state, toast: "愿望为空" };
+    }
+    if (!getRoundPlayerIds(state).has(String(ownerId))) {
+        return { ...state, toast: "上帝不参与本轮许愿" };
     }
     const existingWish = state.wishes.find((wish) => wish.ownerId === ownerId);
     if (existingWish) {
@@ -453,6 +498,22 @@ export const moveWish = (state, wishId, direction) => {
     });
 };
 
+export const moveWishToIndex = (state, wishId, targetIndex) => {
+    const currentIndex = state.wishes.findIndex((wish) => wish.id === wishId);
+    const safeTargetIndex = Math.max(0, Math.min(Number(targetIndex), state.wishes.length - 1));
+    if (currentIndex < 0 || currentIndex === safeTargetIndex) {
+        return state;
+    }
+    const wishes = [...state.wishes];
+    const [wish] = wishes.splice(currentIndex, 1);
+    wishes.splice(safeTargetIndex, 0, wish);
+    return normalizeWorkbenchState({
+        ...state,
+        wishes,
+        toast: "顺序已调整"
+    });
+};
+
 export const updateWish = (state, wishId, updater) => normalizeWorkbenchState({
     ...state,
     wishes: state.wishes.map((wish) => (wish.id === wishId ? updater(wish) : wish))
@@ -468,18 +529,61 @@ export const getCurrentAngel = (state) => {
     return state.participants.find((participant) => participant.id === angelId) || null;
 };
 
-export const getAvailableWishes = (state) => {
+const getCurrentSelectableWishes = (state) => {
     const angel = getCurrentAngel(state);
     if (!angel) {
         return [];
     }
     const assignedWishIds = getAssignedWishIds(state);
-    return state.wishes.filter((wish) => (
-        wish.status === "approved"
-        && wish.ownerId !== angel.id
-        && !assignedWishIds.has(wish.id)
+    return getRoundApprovedWishes(state).filter((wish) => (
+        wish.ownerId !== angel.id && !assignedWishIds.has(wish.id)
     ));
 };
+
+const canCompleteRemainingAssignments = (angelIds, wishes) => {
+    if (!angelIds.length) {
+        return wishes.length === 0;
+    }
+
+    const search = (remainingAngelIds, remainingWishes) => {
+        if (!remainingAngelIds.length) {
+            return remainingWishes.length === 0;
+        }
+
+        const [angelId] = [...remainingAngelIds].sort((a, b) => (
+            remainingWishes.filter((wish) => wish.ownerId !== a).length
+            - remainingWishes.filter((wish) => wish.ownerId !== b).length
+        ));
+        const nextAngelIds = remainingAngelIds.filter((id) => id !== angelId);
+        const possibleWishes = remainingWishes.filter((wish) => wish.ownerId !== angelId);
+
+        return possibleWishes.some((wish) => search(
+            nextAngelIds,
+            remainingWishes.filter((item) => item.id !== wish.id)
+        ));
+    };
+
+    return search(angelIds, wishes);
+};
+
+const canCompleteAfterChoice = (state, wishId) => {
+    const assignedWishIds = getAssignedWishIds(state);
+    const remainingAngelIds = state.selectionOrder.slice(state.activeSelectionIndex + 1);
+    const remainingWishes = getRoundApprovedWishes(state).filter((wish) => (
+        wish.id !== wishId && !assignedWishIds.has(wish.id)
+    ));
+
+    return canCompleteRemainingAssignments(remainingAngelIds, remainingWishes);
+};
+
+export const wouldSelectionCauseConflict = (state, wishId) => (
+    getCurrentSelectableWishes(state).some((wish) => wish.id === wishId)
+    && !canCompleteAfterChoice(state, wishId)
+);
+
+export const getAvailableWishes = (state) => (
+    getCurrentSelectableWishes(state).filter((wish) => canCompleteAfterChoice(state, wish.id))
+);
 
 const getChoiceLabel = (index) => {
     const alphabetSize = 26;
@@ -505,9 +609,11 @@ export const buildBlindChoiceText = (state) => {
 
 export const getForcedSwapCandidate = (state) => {
     const angel = getCurrentAngel(state);
-    const unassignedWishes = state.wishes.filter((wish) => (
-        wish.status === "approved"
-        && !state.assignments.some((assignment) => assignment.wishId === wish.id)
+    if (getRoundApprovedWishes(state).length < getRoundPlayerParticipants(state).length) {
+        return null;
+    }
+    const unassignedWishes = getRoundApprovedWishes(state).filter((wish) => (
+        !state.assignments.some((assignment) => assignment.wishId === wish.id)
     ));
     if (!angel || getAvailableWishes(state).length || unassignedWishes.length !== 1) {
         return null;
@@ -534,7 +640,7 @@ export const getForcedSwapCandidate = (state) => {
 export const applyForcedSwap = (state) => {
     const candidate = getForcedSwapCandidate(state);
     if (!candidate) {
-        return { ...state, toast: "需人工调整" };
+        return { ...state, toast: "请撤回或重置" };
     }
     return normalizeWorkbenchState({
         ...state,
@@ -558,8 +664,11 @@ export const selectWishForCurrentAngel = (state, wishId) => {
     }
 
     const alreadyAssigned = getAssignedWishIds(state).has(wishId);
-    if (alreadyAssigned || wish.ownerId === angel.id || wish.status !== "approved") {
+    if (alreadyAssigned || wish.ownerId === angel.id || wish.status !== "approved" || !getRoundPlayerIds(state).has(wish.ownerId)) {
         return { ...state, toast: "不可选择" };
+    }
+    if (!getAvailableWishes(state).some((availableWish) => availableWish.id === wishId)) {
+        return { ...state, toast: "会导致冲突" };
     }
 
     return normalizeWorkbenchState({
@@ -567,22 +676,6 @@ export const selectWishForCurrentAngel = (state, wishId) => {
         activeSelectionIndex: Math.min(state.activeSelectionIndex + 1, state.selectionOrder.length),
         assignments: [...state.assignments, { angelId: angel.id, wishId }],
         toast: `${angel.name} -> ${getParticipantName(state, wish.ownerId)}`
-    });
-};
-
-export const setManualAssignment = (state, angelId, wishId) => {
-    const wish = getWishById(state, wishId);
-    if (!angelId || !wishId || !wish || wish.ownerId === angelId) {
-        return { ...state, toast: "不可配对" };
-    }
-    const assignments = state.assignments
-        .filter((assignment) => assignment.angelId !== angelId && assignment.wishId !== wishId)
-        .concat({ angelId, wishId });
-    return normalizeWorkbenchState({
-        ...state,
-        assignments,
-        activeSelectionIndex: Math.max(state.activeSelectionIndex, assignments.length),
-        toast: "已调整"
     });
 };
 
@@ -601,7 +694,7 @@ export const resetSelection = (state) => normalizeWorkbenchState({
 });
 
 export const cycleCompletionStatus = (state, participantId) => {
-    const currentStatus = state.completionByParticipantId[participantId] || completionStatuses[0];
+    const currentStatus = normalizeCompletionStatus(state.completionByParticipantId[participantId]);
     const nextStatus = completionStatuses[(completionStatuses.indexOf(currentStatus) + 1) % completionStatuses.length];
     return {
         ...state,
@@ -613,27 +706,46 @@ export const cycleCompletionStatus = (state, participantId) => {
     };
 };
 
+export const setCompletionStatus = (state, participantId, status) => {
+    if (!completionStatuses.includes(status)) {
+        return state;
+    }
+    return {
+        ...state,
+        completionByParticipantId: {
+            ...state.completionByParticipantId,
+            [participantId]: status
+        },
+        toast: "已标记"
+    };
+};
+
 export const buildRevealRows = (state) => {
-    const assignedWishIds = getAssignedWishIds(state);
-    const assignedRows = state.assignments.map((assignment, index) => {
+    const roundPlayerIds = getRoundPlayerIds(state);
+    const roundWishIds = new Set(getRoundApprovedWishes(state).map((wish) => wish.id));
+    const visibleAssignments = state.assignments.filter((assignment) => (
+        roundPlayerIds.has(assignment.angelId) && roundWishIds.has(assignment.wishId)
+    ));
+    const assignedWishIds = new Set(visibleAssignments.map((assignment) => assignment.wishId));
+    const assignedRows = visibleAssignments.map((assignment, index) => {
         const wish = getWishById(state, assignment.wishId);
         return {
             index: index + 1,
             wish: wish?.body || "",
             king: wish ? getParticipantName(state, wish.ownerId) : "未知",
             angel: getParticipantName(state, assignment.angelId),
-            status: completionStatusLabels[state.completionByParticipantId[assignment.angelId]] || "未观察到"
+            status: completionStatusLabels[normalizeCompletionStatus(state.completionByParticipantId[assignment.angelId])]
         };
     });
 
-    const unassignedRows = state.wishes
-        .filter((wish) => wish.status === "approved" && !assignedWishIds.has(wish.id))
+    const unassignedRows = getRoundApprovedWishes(state)
+        .filter((wish) => !assignedWishIds.has(wish.id))
         .map((wish, index) => ({
             index: assignedRows.length + index + 1,
             wish: wish.body,
             king: getParticipantName(state, wish.ownerId),
             angel: "未分配",
-            status: "未观察到"
+            status: completionStatusLabels.pending
         }));
 
     return [...assignedRows, ...unassignedRows];
@@ -644,9 +756,9 @@ export const buildRevealMarkdown = (state) => {
     return [
         `# 第 ${state.round.code} 轮 ${state.round.theme}`,
         "",
-        "| 序号 | 愿望 | 国王 | 天使 | 完成 |",
+        `| 序号 | 国王 | 愿望 | 天使 | ${REVEAL_STATUS_HEADER} |`,
         "| --- | --- | --- | --- | --- |",
-        ...rows.map((row) => `| ${row.index} | ${row.wish} | ${row.king} | ${row.angel} | ${row.status} |`)
+        ...rows.map((row) => `| ${row.index} | ${row.king} | ${row.wish} | ${row.angel} | ${row.status} |`)
     ].join("\n");
 };
 
@@ -657,14 +769,14 @@ export const buildRevealAnnouncement = (state) => (
 export const buildRevealCsv = (state) => {
     const escapeCell = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
     return [
-        ["序号", "愿望", "国王", "天使", "完成"],
-        ...buildRevealRows(state).map((row) => [row.index, row.wish, row.king, row.angel, row.status])
+        ["序号", "国王", "愿望", "天使", REVEAL_STATUS_HEADER],
+        ...buildRevealRows(state).map((row) => [row.index, row.king, row.wish, row.angel, row.status])
     ].map((row) => row.map(escapeCell).join(",")).join("\n");
 };
 
 export const buildRevealTsv = (state) => [
-    ["序号", "愿望", "国王", "天使", "完成"],
-    ...buildRevealRows(state).map((row) => [row.index, row.wish, row.king, row.angel, row.status])
+    ["序号", "国王", "愿望", "天使", REVEAL_STATUS_HEADER],
+    ...buildRevealRows(state).map((row) => [row.index, row.king, row.wish, row.angel, row.status])
 ].map((row) => row.map((cell) => String(cell ?? "").replace(/\t/g, " ").replace(/\r?\n/g, " ")).join("\t")).join("\n");
 
 const escapeSvgText = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -759,6 +871,7 @@ export const startNewRound = (state) => normalizeWorkbenchState({
     round: {
         ...state.round,
         code: String(Number.parseInt(state.round.code, 10) + 1 || state.round.code),
+        god: "",
         theme: "",
         themeSetDate: toLocalIsoDate(),
         ...getDefaultRoundDeadlines()
@@ -766,14 +879,18 @@ export const startNewRound = (state) => normalizeWorkbenchState({
     wishes: [],
     assignments: [],
     activeSelectionIndex: 0,
-    completionByParticipantId: Object.fromEntries(state.participants.map((participant) => [participant.id, "unseen"])),
+    completionByParticipantId: Object.fromEntries(state.participants.map((participant) => [participant.id, "pending"])),
     toast: "新一轮"
 });
 
 export const getStageCounts = (state) => ({
-    members: state.participants.length,
-    wish: getSubmittedWishOwnerIds(state.wishes).size,
-    select: state.assignments.length,
-    finish: Object.values(state.completionByParticipantId).filter((status) => status === "done").length,
-    reveal: state.assignments.length
+    members: getRoundPlayerParticipants(state).length,
+    wish: getSubmittedWishOwnerIds(getRoundApprovedWishes(state)).size,
+    select: state.assignments.filter((assignment) => {
+        const roundPlayerIds = getRoundPlayerIds(state);
+        const roundWishIds = new Set(getRoundApprovedWishes(state).map((wish) => wish.id));
+        return roundPlayerIds.has(assignment.angelId) && roundWishIds.has(assignment.wishId);
+    }).length,
+    finish: getSelectionParticipants(state).filter((participant) => state.completionByParticipantId[participant.id] === "done").length,
+    reveal: buildRevealRows(state).filter((row) => row.angel !== "未分配").length
 });

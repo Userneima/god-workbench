@@ -7,15 +7,26 @@
     "node": ">=20"
   },
   "scripts": {
+    "doctor": "node scripts/preflight.mjs",
+    "predev": "node scripts/preflight.mjs",
     "dev": "vite --host localhost --port 43174",
     "build": "vite build",
     "preview": "vite preview --host localhost --port 43174",
     "test": "vitest run --config vite.config.js",
+    "test:regression": "vitest run --config vite.config.js src/test/god-workbench-regression.test.js",
+    "test:e2e": "playwright test tests/e2e/god-workbench-flow.spec.js",
+    "test:visual": "playwright test tests/e2e/god-workbench-visual.spec.js",
+    "test:browser": "playwright test",
+    "check:full": "npm run check && npm run test:browser",
     "check": "npm run test && npm run build"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "jsdom": "^26.1.0",
     "vite": "^6.3.5",
     "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.1"
   }
 }

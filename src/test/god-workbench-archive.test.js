@@ -10,7 +10,12 @@ const mountWorkbench = () => {
     mountGodWorkbenchPage({ root });
     return root;
 };
-const openStage = (root, target) => root.querySelector(`[data-section-target="${target}"]`).click();
+const openStage = (root, target) => {
+    const btn = root.querySelector(`[data-action="scroll-stage"][data-stage="${target}"]`);
+    if (btn) { btn.click(); return; }
+    const util = root.querySelector(`.god-workbench__utility-item[data-utility="${target}"]`);
+    if (util) util.open = true;
+};
 
 const createCompletedRound = () => {
     const state = createSampleWorkbenchState();
@@ -41,8 +46,9 @@ describe("god workbench archive", () => {
 
         expect(root.textContent).toContain("已归档");
         expect(root.querySelector('.god-workbench__panel--reveal [data-action="archive-round"]').textContent).toBe("更新归档");
-        openStage(root, "archives");
-        expect(root.querySelector(".god-workbench__panel--archives").textContent).toContain("1 轮");
+        const archiveItem = root.querySelector('.god-workbench__utility-item[data-utility="archives"]');
+        archiveItem.open = true;
+        expect(archiveItem.textContent).toContain("1轮");
     });
 
     it("updates the same round archive instead of creating duplicates", () => {
@@ -53,8 +59,9 @@ describe("god workbench archive", () => {
         archiveButton.click();
         archiveButton.click();
 
-        openStage(root, "archives");
-        expect(root.querySelector(".god-workbench__panel--archives").textContent).toContain("1 轮");
+        const archiveItem = root.querySelector('.god-workbench__utility-item[data-utility="archives"]');
+        archiveItem.open = true;
+        expect(archiveItem.textContent).toContain("1轮");
     });
 
     it("starts the next round from the reveal panel after archiving the current round", () => {
@@ -63,23 +70,24 @@ describe("god workbench archive", () => {
 
         root.querySelector('.god-workbench__panel--reveal [data-action="new-round"]').click();
 
-        const firstPanel = root.querySelector(".god-workbench__grid > .god-workbench__panel");
-        expect(firstPanel.classList.contains("god-workbench__panel--theme")).toBe(true);
+        const firstPanel = root.querySelector(".god-workbench__stage-row.is-active .god-workbench__panel");
+        expect(firstPanel.classList.contains("god-workbench__panel--god")).toBe(true);
         expect(root.textContent).toContain("新一轮");
-        openStage(root, "archives");
-        expect(root.querySelector(".god-workbench__panel--archives").textContent).toContain("1 轮");
+        const archiveItem = root.querySelector('.god-workbench__utility-item[data-utility="archives"]');
+        archiveItem.open = true;
+        expect(archiveItem.textContent).toContain("1轮");
     });
 
-    it("returns to theme setup when starting a new round from a focused reveal stage", () => {
+    it("returns to round god selection when starting a new round from a focused reveal stage", () => {
         saveWorkbenchState(createCompletedRound());
         const root = mountWorkbench();
         const originalScrollIntoView = Element.prototype.scrollIntoView;
         Element.prototype.scrollIntoView = vi.fn();
         try {
-            root.querySelector('[data-section-target="reveal"]').click();
+            root.querySelector('[data-action="scroll-stage"][data-stage="reveal"]').click();
             root.querySelector('.god-workbench__panel--reveal [data-action="new-round"]').click();
 
-            expect(root.querySelector(".god-workbench__grid > .god-workbench__panel").classList.contains("god-workbench__panel--theme")).toBe(true);
+            expect(root.querySelector(".god-workbench__stage-row.is-active .god-workbench__panel").classList.contains("god-workbench__panel--god")).toBe(true);
         } finally {
             Element.prototype.scrollIntoView = originalScrollIntoView;
         }

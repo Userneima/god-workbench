@@ -2,7 +2,7 @@
 
 ## About This Project
 
-God Workbench is a lightweight web tool for the host of a recurring “King and Angel” game.
+God Workbench is a lightweight web tool for the host of a recurring "King and Angel" game.
 
 The product is not a complete game platform. It should help the host manage information, reduce mistakes, and generate artifacts for WeChat/QQ workflows. The actual social play should remain in the existing chat groups.
 
@@ -47,23 +47,16 @@ If a feature makes the game feel like a task management system, question it befo
 
 - Member roster is a participant pool, not a game-order queue.
 - Member roster display order is only for lookup and roster management.
-- The round god is selected from the member roster but is not a player in that same round.
-- Round player set means member roster minus the current round god. Wish collection, blind selection, completion observation, reveal rows, and related counts must use the round player set, not the full member roster.
 - Do not use member roster order to decide wish submission order, blind selection order, screenshot sending order, or final swap logic.
 - The first meaningful game order is wish submission order: whoever submits a wish first is recorded first.
 - Blind selection order, screenshot handoff order, and last-step swap detection must be derived from wish submission order.
-- Blind selection may start before every round player has submitted a wish once at least two players have submitted. Late wishes are appended to the same wish-submission order and become the remaining blind selection queue.
-- Blind selection must prevent dead-end choices before the host records them. If selecting a wish would make later players impossible to assign without self-selection, render that choice as unavailable instead of relying on a later forced swap.
-- In status columns, distinguish wish collection from assignment: use `待选择` for a submitted wish that has not been selected by an angel, and `天使 X` only when an assignment exists.
-- Completion state is binary: use `未完成` by default and `已完成` when the host knows the wish is complete. Do not reintroduce observation middle states such as `未观察到`, `可能完成`, or `需提醒`.
-- Blind selection recovery controls must remain accessible after the queue reaches the end. A completed queue can still contain legacy or inconsistent data, so keep undo/reset reachable when assignments or unassigned wishes exist.
 - In the wish table, participants without wishes appear first with an empty wish-order cell; submitted wishes appear after them and are numbered by wish submission order.
 - Reordering submitted wishes should reorder the `state.wishes` array itself, preferably by dragging submitted rows, not by storing a separate order field.
 - Adding a batch of members means append missing names and skip duplicates unless the user explicitly asks to replace or reorder the roster.
 
 ## UX Principles
 
-- Design for the host’s actual sequence: set members, choose this round's god, set theme, collect wishes, record wishes, guide blind selection by wish submission order, observe completion, reveal.
+- Design for the host's actual sequence: set members, choose this round's god, set theme, collect wishes, record wishes, guide blind selection by wish submission order, observe completion, reveal.
 - The left navigation should reflect game phases, not generic app sections.
 - Member roster is a low-frequency reusable setup, not a per-round task.
 - The system should absorb the Excel pain: hide self-wishes, restore previous wishes for the next chooser, track order, and make screenshot handoff easy.
@@ -96,6 +89,18 @@ If a feature makes the game feel like a task management system, question it befo
 
 Keep the project small until the product direction demands otherwise.
 
+## Context Budget Rules
+
+Always exclude these paths from searches and broad reads unless the task explicitly needs them:
+
+- `node_modules/`
+- `dist/`
+- `.git/`
+- `package-lock.json`
+- `.DS_Store`
+
+Prefer targeted Grep or Glob over reading large files whole. Before opening `index.js` or `styles.css`, locate the relevant function or selector first.
+
 ## Question Before Execution
 
 Before implementing a user request, first challenge whether the request is solving the right problem.
@@ -119,6 +124,28 @@ Before implementing a user request, first challenge whether the request is solvi
 - Do not introduce a backend until the product needs multi-device persistence or shared host/member access.
 - Do not add authentication unless the workflow truly requires it.
 - Do not commit `dist/`, `node_modules/`, `.DS_Store`, secrets, or credentials.
+
+## Change Boundaries
+
+Match verification effort to change risk:
+
+- CSS or copy tweaks: visual check usually enough
+- Type, prop, or import changes: `npm run check` + `npm run build`
+- State, persistence, game rule, or flow changes: full test suite (`npx vitest run`)
+- Documentation-only changes: no verification needed
+
+Preserve localStorage compatibility unless intentionally migrating data.
+
+## Problem Solving
+
+When fixing a bug:
+
+1. Identify the direct cause
+2. Identify why it was able to happen
+3. Make the smallest change that fixes it AND prevents the same class of problem
+4. Apply the preventive measure immediately (add a test, tighten a type, add validation)
+
+Do not stop at patching the visible symptom.
 
 ## Residual / Regression Audit
 
@@ -148,14 +175,24 @@ Validation should match the touched surface. For UI cleanup, include:
 
 Do not modify user data while auditing residue unless the user explicitly asks for a data change.
 
+## Harness First
+
+If the same class of bug, UI regression, or state problem appears twice, strengthen the verification layer before continuing feature work:
+
+- add a focused test case that catches the regression
+- add a lint or build check when the issue is statically detectable
+- update the relevant project rule so future agents avoid the same trap
+
+Do not default to broad refactors before these guard layers are in place.
+
 ## Reusable Lessons Check
 
 After meaningful changes, briefly consider whether this work produced a reusable lesson for future God Workbench work or broader projects.
 
 Use the right documentation layer:
 
-- Global `~/.codex/AGENTS.md`: cross-project collaboration rules, execution methods, or quality checks.
-- Project `AGENTS.md`: God Workbench-specific rules future agents must follow.
+- Global `~/.claude/CLAUDE.md`: cross-project collaboration rules, execution methods, or quality checks.
+- Project `CLAUDE.md`: God Workbench-specific rules future agents must follow.
 - `docs/product.md`: product positioning, boundaries, user goals, core flows, and non-goals.
 - `docs/progress.md`: current completion, gaps, risks, and next priorities.
 - `docs/deployment.md`: deployment, environment variables, startup, cloud, and recovery details.
@@ -165,53 +202,16 @@ Do not update every layer by default. Capture only lessons that reduce future mi
 
 If the lesson is only an implementation detail with no future decision value, leave documentation unchanged.
 
+## Feedback Capture
+
+When the user explicitly points out an error, mismatch, confusing copy, or broken behavior, record the reusable rule in the relevant documentation layer within the same task. Do not treat user corrections as ephemeral chat context — they are project memory.
+
 ## Validation
 
 Run after meaningful changes:
 
 ```bash
 npm run check
-```
-
-For bug-prone state transitions and user misoperations, add isolated regression tests instead of manually probing the user's real local data:
-
-```bash
-npm run test:regression
-```
-
-Regression cases should construct sandbox workbench states, perform the risky operation, then assert that wishes, assignments, selection order, reveal rows, and completion state remain valid. Use this especially for completed-round edits, accidental god changes, late wishes, undo/reset, roster changes, old local data, and archive restore behavior.
-
-For real host workflow and rendered layout risks, use the Playwright browser checks:
-
-```bash
-npm run test:e2e
-npm run test:visual
-npm run test:browser
-```
-
-Use `npm run test:e2e` for P0 flow risks: first-use member setup, god selection, theme setup, wish entry, blind selection, undo/reset reachability, completion, reveal, archive, reload/persistence, and misoperations that can only be trusted through the real UI.
-
-Use `npm run test:visual` for P1 experience risks: restrained tool typography, long member/wish layouts, sticky topbar, narrow viewport overflow, reveal table headers, completion grid density, and unexpected auto-scroll.
-
-Use sandbox browser contexts and seeded localStorage states in these tests. Do not run browser automation against the user's real local product data unless the user explicitly asks.
-
-Before treating the product as relatively complete or ready for sustained real use, run a dedicated full exception-set pass. This is a quality gate, not routine churn.
-
-The pass should expand `src/test/god-workbench-regression.test.js` and cover at least:
-
-- Completed round edits: accidental god changes, theme/date edits, completion toggles, reveal generation, archive/update archive.
-- Roster changes around active and completed rounds: append member, duplicate member, remove non-round member, attempted removal of relevant member, god still excluded.
-- Wish table edge cases: late wish after selection starts, long wishes, empty wish attempts, updating an existing wish, deleting a wish with assignments, drag reorder after partial selection.
-- Blind selection recovery: undo, reset, reselect, conflict prevention, last-player dead-end prevention, completed queue with inconsistent legacy data.
-- Persistence and migration: reload after each major phase, old localStorage shapes, old completion statuses, archive restore, member roster compatibility.
-- Responsive/visual smoke checks: long member list, narrow viewport, reveal table headers, completion grid, no unexpected auto-scroll.
-
-Use isolated sandbox states and automated assertions first. Use AI/browser exploration as a supplement for finding suspicious flows, but convert confirmed risks into deterministic regression tests.
-
-For a full local quality gate, run:
-
-```bash
-npm run check:full
 ```
 
 For visual/UI changes, also run the app and inspect the real page:
