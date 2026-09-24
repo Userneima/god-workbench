@@ -282,7 +282,7 @@ describe("god workbench", () => {
         expect(wishesPanel.querySelector("thead").textContent).toContain("许愿顺序");
         expect(rows[0].textContent).toContain("小满");
         expect(rows[0].querySelector(".god-workbench__wish-num").textContent.trim()).toBe("");
-        expect(rows[0].querySelector('textarea[name="body"]').getAttribute("placeholder")).toBe("输入他的愿望，按回车录入");
+        expect(rows[0].querySelector('textarea[name="body"]').getAttribute("placeholder")).toBe("输入他的愿望");
         expect(rows[0].querySelector('textarea[name="body"]').getAttribute("rows")).toBe("1");
         const submittedRow = rows.find((row) => row.textContent.includes("北桥"));
         expect(submittedRow.querySelector(".god-workbench__wish-num").textContent).toContain("01");

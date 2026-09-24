@@ -524,7 +524,7 @@ const renderWishTableRows = (state) => {
                                 ${!wish || !selectionStarted
                                     ? `<form class="god-workbench__wish-row-form" data-form="wish">
                                         <input type="hidden" name="ownerId" value="${escapeHtml(participant.id)}" />
-                                        <textarea name="body" rows="1" placeholder="输入他的愿望，按回车录入">${escapeHtml(wish?.body || "")}</textarea>
+                                        <textarea name="body" rows="1" placeholder="输入他的愿望">${escapeHtml(wish?.body || "")}</textarea>
                                         <div class="god-workbench__wish-row-actions">
                                             <button type="submit">${wish ? "保存" : "录入"}</button>
                                             ${wish ? `<button type="button" data-action="remove-wish" data-wish-id="${escapeHtml(wish.id)}">删除</button>` : ""}
@@ -897,7 +897,7 @@ const renderContent = (state, currentAngel, cloudStatus, activeStage) => {
                     <div class="god-workbench__panel-head">
                         <h2>成员名单</h2>
                     </div>
-                    <div class="god-workbench__empty">请点击右上角「成员」添加所有参与者，上帝本人也要在名单里</div>
+                    <div class="god-workbench__empty">${cloudStatus?.rosterLoading ? "成员名单读取中…" : "请点击右上角「成员」添加所有参与者，上帝本人也要在名单里"}</div>
                 </section>
             </div>
         `;
@@ -1278,8 +1278,11 @@ export const mountGodWorkbenchPage = ({ root }) => {
             return;
         }
 
-        await loadPublicArchives();
-        const hasSharedRoster = await loadSharedMemberRoster();
+        cloudStatus = { ...cloudStatus, rosterLoading: true };
+        const [hasSharedRoster] = await Promise.all([
+            loadSharedMemberRoster().finally(() => setCloudStatus({ rosterLoading: false })),
+            loadPublicArchives()
+        ]);
         try {
             const session = await cloudClient.getSession();
             if (session?.user) {

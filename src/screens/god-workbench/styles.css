@@ -1817,9 +1817,16 @@
         white-space: nowrap;
     }
 
-    .god-workbench__completion-summary,
     .god-workbench__completion-board {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .god-workbench__completion-summary > div {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        min-height: 0;
+        padding: 0.5rem 0.72rem;
     }
 
     .god-workbench__completion-list {
@@ -1868,41 +1875,165 @@
         grid-column: span 1;
     }
 
-    .god-workbench__reveal-table {
-        min-width: 40rem;
-        table-layout: auto;
+    /* Wish table: one card per player instead of a wide scrolling table */
+    .god-workbench__wish-table-wrap {
+        overflow: visible;
+        margin: 0;
+        padding: 0;
     }
 
-    .god-workbench__reveal-table th,
-    .god-workbench__reveal-table td {
-        padding: 0.62rem 0.5rem;
-        font-size: 0.76rem;
-        white-space: normal;
+    .god-workbench__wish-table,
+    .god-workbench__wish-table tbody {
+        display: block;
+        min-width: 0;
     }
 
-    .god-workbench__reveal-table th,
-    .god-workbench__reveal-table td:first-child,
-    .god-workbench__reveal-table td:nth-child(2),
-    .god-workbench__reveal-table td:nth-child(4),
-    .god-workbench__reveal-table td:nth-child(5) {
-        white-space: nowrap;
+    .god-workbench__wish-table thead {
+        display: none;
     }
 
-    .god-workbench__reveal-table th:first-child,
-    .god-workbench__reveal-table td:first-child {
-        width: 2.9rem;
+    .god-workbench__wish-table tbody tr {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "num name status"
+            "body body body";
+        align-items: center;
+        column-gap: 0.5rem;
+        row-gap: 0.42rem;
+        padding: 0.62rem 0.1rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     }
 
-    .god-workbench__reveal-table th:nth-child(2),
-    .god-workbench__reveal-table td:nth-child(2),
-    .god-workbench__reveal-table th:nth-child(4),
-    .god-workbench__reveal-table td:nth-child(4) {
-        width: 3.15rem;
+    .god-workbench__wish-table tbody td {
+        display: block;
+        width: auto;
+        padding: 0;
+        border: 0;
     }
 
-    .god-workbench__reveal-table th:nth-child(5),
-    .god-workbench__reveal-table td:nth-child(5) {
-        width: 6.4rem;
+    .god-workbench__wish-table tbody .god-workbench__wish-num {
+        grid-area: num;
+        text-align: left;
+    }
+
+    .god-workbench__wish-table tbody .god-workbench__wish-num:empty {
+        display: none;
+    }
+
+    .god-workbench__wish-table tbody .god-workbench__wish-name {
+        grid-area: name;
+        font-size: 0.95rem;
+        text-align: left;
+    }
+
+    .god-workbench__wish-table tbody .god-workbench__wish-status {
+        grid-area: status;
+        text-align: right;
+    }
+
+    .god-workbench__wish-table tbody .god-workbench__wish-body {
+        grid-area: body;
+        font-size: 0.9rem;
+        line-height: 1.45;
+    }
+
+    .god-workbench__wish-drag {
+        display: none;
+    }
+
+    .god-workbench__wish-row-form textarea {
+        min-height: 2.5rem;
+        padding: 0.5rem 0.62rem;
+        font-size: 16px;
+    }
+
+    .god-workbench__wish-row-actions button {
+        min-height: 2.5rem;
+        padding: 0 0.8rem;
+        font-size: 0.8rem;
+    }
+
+    .god-workbench__wish-status button,
+    .god-workbench__select-btn {
+        min-height: 2.25rem;
+    }
+
+    /* Reveal table: stacked rows, king and angel on top, wish below */
+    .god-workbench__reveal-list {
+        overflow: visible;
+    }
+
+    .god-workbench__reveal-table,
+    .god-workbench__reveal-table tbody {
+        display: block;
+        min-width: 0;
+    }
+
+    .god-workbench__reveal-table thead {
+        display: none;
+    }
+
+    .god-workbench__reveal-table tbody tr {
+        display: grid;
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "idx king angel status"
+            "wish wish wish wish";
+        align-items: baseline;
+        column-gap: 0.5rem;
+        row-gap: 0.3rem;
+        padding: 0.6rem 0.1rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .god-workbench__reveal-table tbody td {
+        display: block;
+        width: auto !important;
+        padding: 0 !important;
+        border: 0;
+        font-size: 0.86rem !important;
+    }
+
+    .god-workbench__reveal-table tbody td:nth-child(1) {
+        grid-area: idx;
+        color: var(--color-text-muted);
+        font-size: 0.74rem !important;
+    }
+
+    .god-workbench__reveal-table tbody td:nth-child(2) {
+        grid-area: king;
+        font-weight: 760;
+    }
+
+    .god-workbench__reveal-table tbody td:nth-child(4) {
+        grid-area: angel;
+        font-weight: 760;
+        text-align: left;
+    }
+
+    .god-workbench__reveal-table tbody td:nth-child(4)::before {
+        content: "← 天使 ";
+        color: var(--color-text-muted);
+        font-weight: 600;
+    }
+
+    .god-workbench__reveal-table tbody td:nth-child(3) {
+        grid-area: wish;
+        white-space: normal !important;
+        line-height: 1.45;
+    }
+
+    .god-workbench__reveal-table tbody td:nth-child(5) {
+        grid-area: status;
+        text-align: right;
+    }
+
+    /* Inputs at 16px so iOS Safari does not zoom in on focus */
+    .god-workbench input,
+    .god-workbench select,
+    .god-workbench textarea {
+        font-size: 16px;
     }
 
 }
