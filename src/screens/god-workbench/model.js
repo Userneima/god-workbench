@@ -1,6 +1,7 @@
 const STORAGE_KEY = "soulmap.god-workbench.v2";
 const MEMBER_ROSTER_KEY = "soulmap.god-workbench.member-roster.v1";
 const STATE_VERSION = 2;
+const PUBLIC_ARCHIVE_SCHEMA_VERSION = 1;
 const BACKUP_VERSION = 1;
 const BACKUP_APP_ID = "god-workbench";
 const DEFAULT_WISH_REMINDER_TEMPLATE = "某某，这周主题是：XX，你还没许愿哦。";
@@ -278,20 +279,42 @@ export const normalizeWorkbenchState = (rawState) => {
 };
 
 export const applyMemberRoster = (state, participants) => {
+    const safeState = normalizeWorkbenchState(state);
     const roster = normalizeParticipants(participants);
+    const previousByName = new Map(safeState.participants.map((participant) => [participant.name, participant]));
+    const rosterIds = new Set(roster.map((participant) => participant.id));
+    const participantIdMap = new Map(roster.map((participant) => [
+        previousByName.get(participant.name)?.id || participant.id,
+        participant.id
+    ]));
+    const remapParticipantId = (participantId) => participantIdMap.get(participantId) || participantId;
+    const completionByParticipantId = Object.fromEntries(roster.map((participant) => {
+        const previousId = previousByName.get(participant.name)?.id;
+        return [
+            participant.id,
+            normalizeCompletionStatus(
+                safeState.completionByParticipantId?.[participant.id]
+                ?? safeState.completionByParticipantId?.[previousId]
+            )
+        ];
+    }));
     return normalizeWorkbenchState({
-        ...state,
+        ...safeState,
         participants: roster,
-        selectionOrder: state.selectionOrder.filter((participantId) => (
-            roster.some((participant) => participant.id === participantId)
-        )),
-        completionByParticipantId: {
-            ...state.completionByParticipantId,
-            ...Object.fromEntries(roster.map((participant) => [
-                participant.id,
-                normalizeCompletionStatus(state.completionByParticipantId?.[participant.id])
-            ]))
-        }
+        wishes: safeState.wishes.map((wish) => ({
+            ...wish,
+            ownerId: remapParticipantId(wish.ownerId)
+        })),
+        assignments: safeState.assignments.map((assignment) => ({
+            ...assignment,
+            angelId: remapParticipantId(assignment.angelId)
+        })),
+        selectionOrder: safeState.selectionOrder
+            .map(remapParticipantId)
+            .filter((participantId, index, list) => (
+                rosterIds.has(participantId) && list.indexOf(participantId) === index
+            )),
+        completionByParticipantId
     });
 };
 
@@ -312,10 +335,6 @@ export const loadWorkbenchState = () => {
 
 export const saveWorkbenchState = (state) => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeWorkbenchState(state)));
-};
-
-export const clearWorkbenchState = () => {
-    window.localStorage.removeItem(STORAGE_KEY);
 };
 
 export const buildWorkbenchBackup = (state) => {
@@ -607,55 +626,6 @@ export const buildBlindChoiceText = (state) => {
     ].join("\n");
 };
 
-export const getForcedSwapCandidate = (state) => {
-    const angel = getCurrentAngel(state);
-    if (getRoundApprovedWishes(state).length < getRoundPlayerParticipants(state).length) {
-        return null;
-    }
-    const unassignedWishes = getRoundApprovedWishes(state).filter((wish) => (
-        !state.assignments.some((assignment) => assignment.wishId === wish.id)
-    ));
-    if (!angel || getAvailableWishes(state).length || unassignedWishes.length !== 1) {
-        return null;
-    }
-    const [blockedWish] = unassignedWishes;
-    if (blockedWish.ownerId !== angel.id) {
-        return null;
-    }
-    const swapAssignment = [...state.assignments].reverse().find((assignment) => {
-        const assignedWish = getWishById(state, assignment.wishId);
-        return assignedWish && assignedWish.ownerId !== angel.id;
-    });
-    if (!swapAssignment) {
-        return null;
-    }
-    return {
-        angelId: angel.id,
-        wishId: swapAssignment.wishId,
-        swapAngelId: swapAssignment.angelId,
-        swapWishId: blockedWish.id
-    };
-};
-
-export const applyForcedSwap = (state) => {
-    const candidate = getForcedSwapCandidate(state);
-    if (!candidate) {
-        return { ...state, toast: "请撤回或重置" };
-    }
-    return normalizeWorkbenchState({
-        ...state,
-        activeSelectionIndex: Math.min(state.activeSelectionIndex + 1, state.selectionOrder.length),
-        assignments: state.assignments
-            .map((assignment) => (
-                assignment.angelId === candidate.swapAngelId
-                    ? { ...assignment, wishId: candidate.swapWishId }
-                    : assignment
-            ))
-            .concat({ angelId: candidate.angelId, wishId: candidate.wishId }),
-        toast: "已交换"
-    });
-};
-
 export const selectWishForCurrentAngel = (state, wishId) => {
     const angel = getCurrentAngel(state);
     const wish = getWishById(state, wishId);
@@ -749,6 +719,26 @@ export const buildRevealRows = (state) => {
         }));
 
     return [...assignedRows, ...unassignedRows];
+};
+
+export const buildPublicArchiveRecord = (state) => {
+    const safeState = normalizeWorkbenchState(state);
+    const revealRows = buildRevealRows(safeState);
+    const selectionParticipants = getSelectionParticipants(safeState);
+    return {
+        schema_version: PUBLIC_ARCHIVE_SCHEMA_VERSION,
+        round_id: String(safeState.round.code || "").trim() || "unknown",
+        round_label: `第 ${String(safeState.round.code || "-").trim() || "-"} 轮`,
+        theme: String(safeState.round.theme || "").trim() || "未命名",
+        god_name: String(safeState.round.god || "").trim() || "未选",
+        reveal_rows: revealRows,
+        completion_rows: selectionParticipants.map((participant) => ({
+            participant_id: participant.id,
+            participant_name: participant.name,
+            status: completionStatusLabels[normalizeCompletionStatus(safeState.completionByParticipantId[participant.id])]
+        })),
+        source_app_version: `state-v${STATE_VERSION}`
+    };
 };
 
 export const buildRevealMarkdown = (state) => {

@@ -9,14 +9,14 @@ export default defineConfig({
         timeout: 5_000
     },
     use: {
-        baseURL: "http://localhost:43174",
+        baseURL: "http://localhost:43175",
         trace: "retain-on-failure",
         screenshot: "only-on-failure"
     },
     webServer: {
-        command: "npm run dev",
-        url: "http://localhost:43174/",
-        reuseExistingServer: !process.env.CI,
+        command: "VITE_SUPABASE_URL= VITE_SUPABASE_PUBLISHABLE_KEY= npm run dev -- --port 43175 --strictPort",
+        url: "http://localhost:43175/",
+        reuseExistingServer: false,
         timeout: 60_000
     },
     projects: [

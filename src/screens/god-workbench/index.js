@@ -3,10 +3,10 @@ import { createCloudSyncClient } from "./cloud.js";
 import {
     addParticipant,
     addWish,
-    applyForcedSwap,
     buildBlindChoiceText,
     buildCompletionFollowup,
     archiveCurrentRound,
+    buildPublicArchiveRecord,
     buildRevealCsv,
     buildRevealAnnouncement,
     buildRevealMarkdown,
@@ -16,21 +16,19 @@ import {
     buildThemeAnnouncement,
     buildWorkbenchBackup,
     buildRevealRows,
-    clearWorkbenchState,
+    applyMemberRoster,
     completionStatuses,
     completionStatusLabels,
     createInitialWorkbenchState,
     REVEAL_STATUS_HEADER,
     getAvailableWishes,
     getCurrentAngel,
-    getForcedSwapCandidate,
     getParticipantName,
     getRoundApprovedWishes,
     getRoundPlayerParticipants,
     getSelectionParticipants,
     getStageCounts,
     getSubmittedWishOwnerIds,
-    getWishById,
     loadWorkbenchState,
     moveWishToIndex,
     normalizeWorkbenchState,
@@ -55,31 +53,6 @@ export {
     getAvailableWishes,
     selectWishForCurrentAngel
 } from "./model.js";
-
-const getLatestAssignment = (state) => {
-    const assignment = state.assignments.at(-1);
-    const wish = assignment ? getWishById(state, assignment.wishId) : null;
-    if (!assignment || !wish) {
-        return null;
-    }
-
-    return {
-        angelName: getParticipantName(state, assignment.angelId),
-        kingName: getParticipantName(state, wish.ownerId),
-        wishBody: wish.body
-    };
-};
-
-export const buildAngelNotice = (state) => {
-    const latestAssignment = getLatestAssignment(state);
-    if (!latestAssignment) {
-        return "";
-    }
-    return [
-        `你选到的是：${latestAssignment.kingName}`,
-        `愿望：${latestAssignment.wishBody}`
-    ].join("\n");
-};
 
 const copyText = async (text) => {
     if (navigator.clipboard?.writeText) {
@@ -108,8 +81,7 @@ const resizeWishTextareas = (root) => {
         .forEach(resizeWishTextarea);
 };
 
-const downloadTextFile = (filename, content, type = "text/plain") => {
-    const blob = new Blob([content], { type });
+const downloadBlobFile = (filename, blob) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -120,6 +92,58 @@ const downloadTextFile = (filename, content, type = "text/plain") => {
     URL.revokeObjectURL(url);
 };
 
+const downloadTextFile = (filename, content, type = "text/plain") => {
+    downloadBlobFile(filename, new Blob([content], { type }));
+};
+
+const getSvgDimensions = (svg) => {
+    const width = Number(svg.match(/\bwidth="(\d+(?:\.\d+)?)"/)?.[1]) || 1200;
+    const height = Number(svg.match(/\bheight="(\d+(?:\.\d+)?)"/)?.[1]) || 1200;
+    return { width, height };
+};
+
+const buildPngBlobFromSvg = async (svg, scale = 2) => {
+    const { width, height } = getSvgDimensions(svg);
+    const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+    try {
+        const image = new Image();
+        const loaded = new Promise((resolve, reject) => {
+            image.onload = resolve;
+            image.onerror = () => reject(new Error("Reveal image render failed."));
+        });
+        image.src = url;
+        await loaded;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.ceil(width * scale);
+        canvas.height = Math.ceil(height * scale);
+        const context = canvas.getContext("2d");
+        if (!context) {
+            throw new Error("Reveal PNG export failed.");
+        }
+        context.scale(scale, scale);
+        context.drawImage(image, 0, 0, width, height);
+
+        return await new Promise((resolve, reject) => {
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    resolve(blob);
+                    return;
+                }
+                reject(new Error("Reveal PNG export failed."));
+            }, "image/png");
+        });
+    } finally {
+        URL.revokeObjectURL(url);
+    }
+};
+
+const downloadRevealPng = async (filename, state) => {
+    const blob = await buildPngBlobFromSvg(buildRevealSvg(state));
+    downloadBlobFile(filename, blob);
+};
+
 const getBackupFilename = (state) => {
     const date = new Date().toISOString().slice(0, 10);
     const roundCode = String(state.round.code || "round").replace(/[^\w-]+/g, "-");
@@ -128,16 +152,125 @@ const getBackupFilename = (state) => {
 
 const createDefaultCloudStatus = () => ({
     state: "checking",
-    label: "云端检查中",
-    email: ""
+    label: "同步检查中",
+    email: "",
+    message: "",
+    lastSyncedAt: ""
 });
 
-const getCloudStatusLabel = (cloudStatus) => cloudStatus?.label || "本地保存";
+const getCloudStatusLabel = (cloudStatus) => cloudStatus?.label || "本地草稿";
+
+const getCloudTopbarStatus = (cloudStatus) => {
+    if (cloudStatus.state === "conflict") {
+        return { label: "选择版本", meta: "草稿冲突" };
+    }
+    if (cloudStatus.state === "passwordRecovery") {
+        return { label: "设置密码", meta: "账号恢复" };
+    }
+    if (cloudStatus.state === "syncing" || cloudStatus.state === "checking") {
+        return { label: "同步中", meta: "请稍候" };
+    }
+    if (cloudStatus.state === "synced" || cloudStatus.state === "authenticated") {
+        return { label: "已同步", meta: cloudStatus.email || "云端草稿" };
+    }
+    if (cloudStatus.state === "error") {
+        return { label: "同步异常", meta: "点此处理" };
+    }
+    if (cloudStatus.state === "unconfigured") {
+        return { label: "本地草稿", meta: "未接云端" };
+    }
+    return { label: "登录同步", meta: "本地草稿" };
+};
+
+const createDefaultPublicArchiveStatus = () => ({
+    state: "checking",
+    label: "公开归档读取中"
+});
+
+const getPublicArchiveStatusLabel = (publicArchiveStatus) => publicArchiveStatus?.label || "公开归档";
+
+const isCloudAuthenticated = (cloudStatus) => (
+    ["authenticated", "syncing", "synced"].includes(cloudStatus.state)
+    && Boolean(cloudStatus.email)
+);
 
 const getCloudPayload = (state) => ({
     ...normalizeWorkbenchState(state),
     toast: ""
 });
+
+const formatSyncTime = (value) => {
+    if (!value) {
+        return "";
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return "";
+    }
+    return date.toLocaleString("zh-CN", {
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+};
+
+const getCloudStatusDetail = (cloudStatus) => {
+    if (cloudStatus.message) {
+        return cloudStatus.message;
+    }
+    if (cloudStatus.lastSyncedAt) {
+        return `最后同步 ${formatSyncTime(cloudStatus.lastSyncedAt)}`;
+    }
+    if (cloudStatus.state === "error") {
+        return "稍后可以重试，当前浏览器本地仍会自动保存";
+    }
+    return "";
+};
+
+const getComparableCloudPayload = (workbenchState, { ignoreParticipants = false } = {}) => {
+    const payload = getCloudPayload(workbenchState);
+    return JSON.stringify(ignoreParticipants ? {
+        ...payload,
+        participants: [],
+        completionByParticipantId: {}
+    } : payload);
+};
+
+const hasLocalDraftContent = (workbenchState, { ignoreParticipants = false } = {}) => {
+    const normalized = normalizeWorkbenchState(workbenchState);
+    return Boolean(
+        (!ignoreParticipants && normalized.participants.length)
+        || normalized.round.god
+        || normalized.round.theme
+        || normalized.wishes.length
+        || normalized.assignments.length
+        || normalized.archives.length
+    );
+};
+
+const describeAuthError = (error, mode) => {
+    const message = String(error?.message || "").toLowerCase();
+    if (message.includes("email not confirmed")) {
+        return { label: "邮箱未确认", message: "先去邮箱点击确认链接，再回来登录" };
+    }
+    if (message.includes("invalid login credentials")) {
+        return { label: "邮箱或密码不对", message: "检查邮箱、密码，或用“忘记密码”重置" };
+    }
+    if (message.includes("already registered") || message.includes("user already registered")) {
+        return { label: "邮箱可能已注册", message: "可以直接登录，或用“忘记密码”重置" };
+    }
+    if (message.includes("rate limit") || message.includes("too many") || message.includes("over email send rate limit")) {
+        return { label: "操作太频繁", message: "邮件发送有频率限制，稍后再试" };
+    }
+    if (message.includes("network") || message.includes("failed to fetch")) {
+        return { label: "网络失败", message: "本地仍会自动保存，网络恢复后再同步" };
+    }
+    return {
+        label: mode === "sign-up" ? "注册失败" : mode === "reset-password" ? "发送失败" : mode === "sync" ? "同步失败" : "登录失败",
+        message: "请稍后重试；本地数据不会丢失"
+    };
+};
 
 const getActiveStage = (state, counts) => {
     if (!counts.members) return "members";
@@ -445,7 +578,6 @@ const renderWishProgress = (state) => {
 const renderSelectionBar = (state) => {
     const currentAngel = getCurrentAngel(state);
     const availableWishes = getAvailableWishes(state);
-    const forcedSwapCandidate = getForcedSwapCandidate(state);
     const queueItems = state.selectionOrder.map((participantId, index) => {
         const assignment = state.assignments.find((item) => item.angelId === participantId);
         return `
@@ -454,10 +586,6 @@ const renderSelectionBar = (state) => {
             </span>
         `;
     }).join("");
-
-    if (forcedSwapCandidate) {
-        return renderForcedSwapCard(state, forcedSwapCandidate);
-    }
 
     if (!currentAngel) {
         return `
@@ -511,16 +639,6 @@ const renderWishesPanel = (state) => {
         </section>
     `;
 };
-
-/* ── Blind selection helpers ────────────────────── */
-
-const renderForcedSwapCard = (state, candidate) => `
-    <div class="god-workbench__swap-card">
-        <span>可交换</span>
-        <strong>${escapeHtml(getParticipantName(state, candidate.swapAngelId))} ↔ ${escapeHtml(getParticipantName(state, candidate.angelId))}</strong>
-        <button type="button" data-action="apply-forced-swap">强制交换</button>
-    </div>
-`;
 
 /* ── Completion panel ───────────────────────────── */
 
@@ -604,9 +722,32 @@ const renderRevealRows = (state) => buildRevealRows(state).map((row) => `
     </tr>
 `).join("");
 
-const renderArchives = (state) => {
+const renderPublicArchives = (publicArchives, publicArchiveStatus) => {
+    if (publicArchiveStatus.state === "checking") {
+        return `<div class="god-workbench__empty">公开归档读取中</div>`;
+    }
+    if (publicArchiveStatus.state === "error") {
+        return `<div class="god-workbench__empty">公开归档读取失败</div>`;
+    }
+    if (publicArchiveStatus.state === "unconfigured") {
+        return `<div class="god-workbench__empty">缺少 Supabase 环境变量，当前只能使用本地归档</div>`;
+    }
+    if (!publicArchives.length) {
+        return `<div class="god-workbench__empty">暂无公开归档</div>`;
+    }
+
+    return publicArchives.slice(0, 8).map((archive) => `
+        <div class="god-workbench__archive-row">
+            <span>${escapeHtml(archive.roundLabel || archive.roundId || "")} · ${escapeHtml(archive.theme || "")}</span>
+            <strong>${escapeHtml((archive.publishedAt || "").slice(0, 10))}</strong>
+            <span>上帝 ${escapeHtml(archive.godName || "-")}</span>
+        </div>
+    `).join("");
+};
+
+const renderLocalArchives = (state) => {
     if (!state.archives.length) {
-        return `<div class="god-workbench__empty">暂无归档</div>`;
+        return "";
     }
 
     return state.archives.slice(0, 5).map((archive) => `
@@ -618,16 +759,24 @@ const renderArchives = (state) => {
     `).join("");
 };
 
-const renderArchivePanel = (state) => `
+const renderArchivePanel = (state, publicArchives, publicArchiveStatus) => `
     <div class="god-workbench__utility-panel">
-        <div class="god-workbench__archive-list">${renderArchives(state)}</div>
+        <div class="god-workbench__archive-list">
+            <div class="god-workbench__archive-section-label">公开归档</div>
+            ${renderPublicArchives(publicArchives, publicArchiveStatus)}
+            ${state.archives.length ? `
+                <div class="god-workbench__archive-section-label">本地恢复</div>
+                ${renderLocalArchives(state)}
+            ` : ""}
+        </div>
     </div>
 `;
 
 const renderCloudAuth = (cloudStatus) => {
+    const detail = getCloudStatusDetail(cloudStatus);
     if (cloudStatus.state === "unconfigured") {
         return `
-            <div class="god-workbench__cloud-form">
+            <div class="god-workbench__cloud-form god-workbench__cloud-form--status">
                 <span>缺少 Supabase 环境变量</span>
                 <button type="button" data-action="export-backup">下载备份</button>
             </div>
@@ -636,19 +785,47 @@ const renderCloudAuth = (cloudStatus) => {
 
     if (cloudStatus.state === "authenticated" || cloudStatus.state === "syncing" || cloudStatus.state === "synced") {
         return `
-            <div class="god-workbench__cloud-form">
+            <div class="god-workbench__cloud-form god-workbench__cloud-form--status">
                 <span>${escapeHtml(cloudStatus.email || "已登录")}</span>
+                ${detail ? `<small>${escapeHtml(detail)}</small>` : ""}
                 <button type="button" data-action="cloud-sign-out">退出</button>
                 <button type="button" data-action="export-backup">下载备份</button>
             </div>
         `;
     }
 
+    if (cloudStatus.state === "conflict") {
+        return `
+            <div class="god-workbench__cloud-form god-workbench__cloud-form--conflict">
+                <span>本地和云端都有草稿</span>
+                <small>${escapeHtml(detail || "请选择这次继续用哪个版本")}</small>
+                <button type="button" data-action="cloud-use-local">保留本地</button>
+                <button type="button" data-action="cloud-use-remote">使用云端</button>
+                <button type="button" data-action="export-backup">下载备份</button>
+            </div>
+        `;
+    }
+
+    if (cloudStatus.state === "passwordRecovery") {
+        return `
+            <form class="god-workbench__cloud-form god-workbench__cloud-form--recovery" data-form="cloud-password-recovery">
+                <label>
+                    <span>新密码</span>
+                    <input type="password" name="password" autocomplete="new-password" required />
+                </label>
+                <button type="submit">保存新密码</button>
+                <button type="button" data-action="cloud-sign-out">取消</button>
+                ${detail ? `<small>${escapeHtml(detail)}</small>` : ""}
+            </form>
+        `;
+    }
+
+    const emailValue = cloudStatus.email ? ` value="${escapeHtml(cloudStatus.email)}"` : "";
     return `
         <form class="god-workbench__cloud-form" data-form="cloud-auth">
             <label>
                 <span>邮箱</span>
-                <input type="email" name="email" autocomplete="email" required />
+                <input type="email" name="email" autocomplete="email" required${emailValue} />
             </label>
             <label>
                 <span>密码</span>
@@ -656,23 +833,35 @@ const renderCloudAuth = (cloudStatus) => {
             </label>
             <button type="submit" data-auth-mode="sign-in">登录</button>
             <button type="submit" data-auth-mode="sign-up">注册</button>
+            <button type="button" data-action="send-password-reset">忘记密码</button>
+            ${cloudStatus.email ? `<button type="button" data-action="resend-confirmation" data-email="${escapeHtml(cloudStatus.email)}">重发确认</button>` : ""}
+            ${detail ? `<small>${escapeHtml(detail)}</small>` : ""}
         </form>
     `;
 };
 
-const renderDataPanel = (state, cloudStatus) => `
+const renderDataPanel = (state, cloudStatus, publicArchives, publicArchiveStatus) => `
     <div class="god-workbench__utility-panel">
         <div class="god-workbench__data-actions">
             <div>
                 <strong>Supabase</strong>
-                <span>${escapeHtml(getCloudStatusLabel(cloudStatus))} · ${escapeHtml(state.archives.length)} 轮归档</span>
+                <span>${escapeHtml(getCloudStatusLabel(cloudStatus))} · ${escapeHtml(getPublicArchiveStatusLabel(publicArchiveStatus))} · ${escapeHtml(publicArchives.length)} 轮公开归档</span>
             </div>
             ${renderCloudAuth(cloudStatus)}
         </div>
     </div>
 `;
 
-const renderRevealPanel = (state) => `
+const getArchiveActionLabel = (state, cloudStatus) => {
+    if (cloudStatus.state === "unconfigured") {
+        return state.archives.some((item) => item.round?.code === state.round.code && item.round?.theme === state.round.theme)
+            ? "更新本地归档"
+            : "本地归档";
+    }
+    return isCloudAuthenticated(cloudStatus) ? "发布公开归档" : "登录后发布归档";
+};
+
+const renderRevealPanel = (state, _currentAngel, cloudStatus) => `
     <section class="god-workbench__panel god-workbench__panel--reveal" data-section="reveal">
         <div class="god-workbench__panel-head">
             <h2>生成揭晓</h2>
@@ -680,9 +869,9 @@ const renderRevealPanel = (state) => `
                 <button type="button" data-action="copy-reveal-announcement">复制文案</button>
                 <button type="button" data-action="copy-reveal">复制 Markdown</button>
                 <button type="button" data-action="copy-reveal-tsv">复制 Excel</button>
-                <button type="button" data-action="export-reveal-svg">导出图片</button>
+                <button type="button" data-action="export-reveal-png">导出图片</button>
                 <button type="button" data-action="export-csv">导出 CSV</button>
-                <button type="button" data-action="archive-round">${state.archives.some((item) => item.round?.code === state.round.code && item.round?.theme === state.round.theme) ? "更新归档" : "归档本轮"}</button>
+                <button type="button" data-action="archive-round">${escapeHtml(getArchiveActionLabel(state, cloudStatus))}</button>
                 <button type="button" data-action="new-round">开新一轮</button>
             </div>
         </div>
@@ -697,7 +886,7 @@ const PANEL_RENDERERS = {
     theme:      (s)  => renderThemeKickoff(s),
     wishes:     (s)  => renderWishesPanel(s),
     completion: (s)  => renderCompletionPanel(s),
-    reveal:     (s)  => renderRevealPanel(s)
+    reveal:     (s, currentAngel, cloudStatus)  => renderRevealPanel(s, currentAngel, cloudStatus)
 };
 
 const renderContent = (state, currentAngel, cloudStatus, activeStage) => {
@@ -728,30 +917,39 @@ const renderContent = (state, currentAngel, cloudStatus, activeStage) => {
     }).join("");
 };
 
-/* ── Utility bar ────────────────────────────────── */
-
-const UTILITY_SECTIONS = [
-    { label: "归档", target: "archives", value: (s) => `${s.archives.length}轮`, render: (s) => renderArchivePanel(s) },
-    { label: "云端", target: "data", value: (_s, cs) => getCloudStatusLabel(cs), render: (s, cs) => renderDataPanel(s, cs) }
-];
-
-const renderUtilityBar = (state, cloudStatus) => `
-    <footer class="god-workbench__utility">
-        ${UTILITY_SECTIONS.map((section) => `
-            <details class="god-workbench__utility-item" data-utility="${escapeHtml(section.target)}">
-                <summary>
-                    <strong>${escapeHtml(section.label)}</strong>
-                    <span>${escapeHtml(section.value(state, cloudStatus))}</span>
-                </summary>
-                <div class="god-workbench__utility-drop">${section.render(state, cloudStatus)}</div>
-            </details>
-        `).join("")}
-    </footer>
+const renderTopbarMenu = ({ className = "", label, meta, content, target }) => `
+    <details class="god-workbench__top-menu ${escapeHtml(className)}" data-top-menu="${escapeHtml(target)}">
+        <summary>
+            <strong>${escapeHtml(label)}</strong>
+            ${meta ? `<span>${escapeHtml(meta)}</span>` : ""}
+        </summary>
+        <div class="god-workbench__top-menu-drop">
+            ${content}
+        </div>
+    </details>
 `;
+
+const renderArchiveTopbarMenu = (state, publicArchives, publicArchiveStatus) => renderTopbarMenu({
+    target: "archives",
+    label: "归档",
+    meta: `${publicArchives.length}轮公开`,
+    content: renderArchivePanel(state, publicArchives, publicArchiveStatus)
+});
+
+const renderCloudTopbarMenu = (state, cloudStatus, publicArchives, publicArchiveStatus) => {
+    const status = getCloudTopbarStatus(cloudStatus);
+    return renderTopbarMenu({
+        target: "cloud",
+        className: `god-workbench__top-menu--cloud is-${cloudStatus.state}`,
+        label: status.label,
+        meta: status.meta,
+        content: renderDataPanel(state, cloudStatus, publicArchives, publicArchiveStatus)
+    });
+};
 
 /* ── Shell ──────────────────────────────────────── */
 
-const render = (root, state, cloudStatus, membersPanelOpen = false) => {
+const render = (root, state, cloudStatus, membersPanelOpen = false, publicArchives = [], publicArchiveStatus = createDefaultPublicArchiveStatus()) => {
     const currentAngel = getCurrentAngel(state);
     const counts = getStageCounts(state);
     const activeStage = getActiveStage(state, counts);
@@ -772,16 +970,8 @@ const render = (root, state, cloudStatus, membersPanelOpen = false) => {
                         成员 ${escapeHtml(String(state.participants.length))}人
                     </button>
                     <span class="god-workbench__toast">${escapeHtml(state.toast || "已保存")}</span>
-                    <span class="god-workbench__cloud-pill">${escapeHtml(getCloudStatusLabel(cloudStatus))}</span>
-                    <details class="god-workbench__more">
-                        <summary>更多</summary>
-                        <div>
-                            <button type="button" data-action="export-backup">下载备份</button>
-                            <button type="button" data-action="archive-round">归档本轮</button>
-                            <button type="button" data-action="new-round">开新一轮</button>
-                            <button type="button" data-action="clear-local">清空本地</button>
-                        </div>
-                    </details>
+                    ${renderArchiveTopbarMenu(state, publicArchives, publicArchiveStatus)}
+                    ${renderCloudTopbarMenu(state, cloudStatus, publicArchives, publicArchiveStatus)}
                 </div>
             </header>
 
@@ -790,8 +980,6 @@ const render = (root, state, cloudStatus, membersPanelOpen = false) => {
             <section class="god-workbench__content" aria-label="工作台">
                 ${renderContent(state, currentAngel, cloudStatus, activeStage)}
             </section>
-
-            ${renderUtilityBar(state, cloudStatus)}
 
             <div class="god-workbench__members-overlay ${membersPanelOpen ? "is-open" : ""}">
                 <div class="god-workbench__members-overlay-panel">
@@ -813,19 +1001,46 @@ const render = (root, state, cloudStatus, membersPanelOpen = false) => {
 export const mountGodWorkbenchPage = ({ root }) => {
     let state = loadWorkbenchState();
     let cloudStatus = createDefaultCloudStatus();
+    let publicArchiveStatus = createDefaultPublicArchiveStatus();
+    let publicArchives = [];
     let cloudSaveTimer = 0;
     let cloudHydrating = false;
+    let pendingCloudState = null;
+    let pendingCloudUpdatedAt = "";
+    let sharedMemberRoster = [];
     let membersPanelOpen = false;
     let draggedWishId = "";
     const cloudClient = createCloudSyncClient();
 
-    const renderNow = () => render(root, state, cloudStatus, membersPanelOpen);
+    const renderNow = () => render(root, state, cloudStatus, membersPanelOpen, publicArchives, publicArchiveStatus);
 
     const setCloudStatus = (nextStatus) => {
         cloudStatus = {
             ...cloudStatus,
             ...nextStatus
         };
+        renderNow();
+    };
+
+    const setPublicArchiveStatus = (nextStatus) => {
+        publicArchiveStatus = {
+            ...publicArchiveStatus,
+            ...nextStatus
+        };
+        renderNow();
+    };
+
+    const applySharedMemberRoster = (participants, toast = "") => {
+        if (!participants.length) {
+            return;
+        }
+        sharedMemberRoster = participants;
+        state = applyMemberRoster({
+            ...state,
+            toast: toast || state.toast
+        }, participants);
+        saveMemberRoster(state.participants);
+        saveWorkbenchState(state);
         renderNow();
     };
 
@@ -839,11 +1054,19 @@ export const mountGodWorkbenchPage = ({ root }) => {
             return;
         }
         window.clearTimeout(cloudSaveTimer);
-        setCloudStatus({ state: "syncing", label: "云端保存中" });
+        setCloudStatus({ state: "syncing", label: "云端保存中", message: "" });
         cloudSaveTimer = window.setTimeout(() => {
             void cloudClient.saveState(getCloudPayload(state))
-                .then(() => setCloudStatus({ state: "synced", label: "云端已保存" }))
-                .catch(() => setCloudStatus({ state: "error", label: "云端保存失败" }));
+                .then((updatedAt) => setCloudStatus({
+                    state: "synced",
+                    label: "云端已保存",
+                    lastSyncedAt: updatedAt || new Date().toISOString(),
+                    message: ""
+                }))
+                .catch((error) => {
+                    const detail = describeAuthError(error, "sync");
+                    setCloudStatus({ state: "error", label: "云端保存失败", message: detail.message });
+                });
         }, 520);
     };
 
@@ -851,11 +1074,15 @@ export const mountGodWorkbenchPage = ({ root }) => {
         state = normalizeWorkbenchState(nextState);
         if (syncMemberRoster) {
             saveMemberRoster(state.participants);
+            sharedMemberRoster = state.participants;
         }
         saveWorkbenchState(state);
         renderNow();
         if (syncCloud) {
             saveToCloud();
+        }
+        if (syncMemberRoster) {
+            saveSharedMemberRosterToCloud();
         }
     };
 
@@ -874,28 +1101,171 @@ export const mountGodWorkbenchPage = ({ root }) => {
         setState(names.reduce((nextState, name) => addParticipant(nextState, name), state), { syncMemberRoster: true });
     };
 
+    const loadPublicArchives = async () => {
+        if (!cloudClient) {
+            setPublicArchiveStatus({ state: "unconfigured", label: "本地归档" });
+            return;
+        }
+        setPublicArchiveStatus({ state: "checking", label: "公开归档读取中" });
+        try {
+            publicArchives = await cloudClient.loadPublicArchives();
+            setPublicArchiveStatus({ state: "ready", label: "公开归档已读取" });
+        } catch {
+            setPublicArchiveStatus({ state: "error", label: "公开归档读取失败" });
+        }
+    };
+
+    const saveSharedMemberRosterToCloud = (message = "成员名单已同步") => {
+        if (!cloudClient || !isCloudAuthenticated(cloudStatus)) {
+            return;
+        }
+        void cloudClient.saveSharedMemberRoster(state.participants)
+            .then((updatedAt) => setCloudStatus({
+                state: "synced",
+                label: "云端已保存",
+                lastSyncedAt: updatedAt || new Date().toISOString(),
+                message
+            }))
+            .catch((error) => {
+                const detail = describeAuthError(error, "sync");
+                setCloudStatus({ state: "error", label: "成员名单同步失败", message: detail.message });
+            });
+    };
+
+    const saveSharedMemberRosterToCloudNow = async (message = "成员名单已同步") => {
+        if (!cloudClient || !isCloudAuthenticated(cloudStatus) || !state.participants.length) {
+            return;
+        }
+        const updatedAt = await cloudClient.saveSharedMemberRoster(state.participants);
+        setCloudStatus({
+            state: "synced",
+            label: "云端已保存",
+            lastSyncedAt: updatedAt || new Date().toISOString(),
+            message
+        });
+    };
+
+    const loadSharedMemberRoster = async () => {
+        if (!cloudClient) {
+            return false;
+        }
+        try {
+            const roster = await cloudClient.loadSharedMemberRoster();
+            if (roster?.participants?.length) {
+                applySharedMemberRoster(roster.participants);
+                return true;
+            }
+        } catch {
+            setCloudStatus({ state: "error", label: "成员名单读取失败", message: "当前仍会使用本地成员名单" });
+        }
+        return false;
+    };
+
+    const publishCurrentArchive = async () => {
+        if (!cloudClient) {
+            setState(archiveCurrentRound(state));
+            return;
+        }
+        if (!isCloudAuthenticated(cloudStatus)) {
+            setState({ ...state, toast: "登录后发布公开归档" }, { syncCloud: false });
+            return;
+        }
+        const confirmed = window.confirm("发布归档后，愿望、天使关系和完成状态会公开给所有打开产品的人查看。确定发布？");
+        if (!confirmed) {
+            return;
+        }
+        setCloudStatus({ state: "syncing", label: "公开归档发布中" });
+        try {
+            const archive = await cloudClient.publishPublicArchive(buildPublicArchiveRecord(state));
+            publicArchives = [archive, ...publicArchives.filter((item) => item.id !== archive.id)].slice(0, 20);
+            setPublicArchiveStatus({ state: "ready", label: "公开归档已读取" });
+            setState({
+                ...archiveCurrentRound(state),
+                toast: "已发布公开归档"
+            });
+            setCloudStatus({ state: "synced", label: "云端已保存", lastSyncedAt: new Date().toISOString(), message: "" });
+        } catch {
+            setCloudStatus({ state: "error", label: "公开归档发布失败" });
+            setState({ ...state, toast: "公开归档发布失败" }, { syncCloud: false });
+        }
+    };
+
+    const applyRemoteCloudState = (remoteState, updatedAt = "") => {
+        pendingCloudState = null;
+        pendingCloudUpdatedAt = "";
+        const remoteDraft = normalizeWorkbenchState({
+            ...remoteState,
+            toast: "已从云端同步"
+        });
+        state = sharedMemberRoster.length
+            ? applyMemberRoster(remoteDraft, sharedMemberRoster)
+            : remoteDraft;
+        saveMemberRoster(state.participants);
+        saveWorkbenchState(state);
+        setCloudStatus({
+            state: "synced",
+            label: "云端已同步",
+            lastSyncedAt: updatedAt || new Date().toISOString(),
+            message: ""
+        });
+    };
+
+    const saveLocalStateToCloudNow = async (message = "本地草稿已同步到云端") => {
+        if (!cloudClient) {
+            return;
+        }
+        pendingCloudState = null;
+        pendingCloudUpdatedAt = "";
+        setCloudStatus({ state: "syncing", label: "云端保存中", message: "" });
+        const updatedAt = await cloudClient.saveState(getCloudPayload(state));
+        setCloudStatus({
+            state: "synced",
+            label: "云端已保存",
+            lastSyncedAt: updatedAt || new Date().toISOString(),
+            message
+        });
+    };
+
     const hydrateFromCloud = async () => {
         if (!cloudClient || cloudHydrating) {
             return;
         }
         cloudHydrating = true;
-        setCloudStatus({ state: "syncing", label: "云端同步中" });
+        setCloudStatus({ state: "syncing", label: "云端同步中", message: "" });
         try {
             const remote = await cloudClient.loadState();
             if (remote?.state) {
-                state = normalizeWorkbenchState({
-                    ...remote.state,
-                    toast: "已从云端同步"
-                });
-                saveMemberRoster(state.participants);
-                saveWorkbenchState(state);
-                setCloudStatus({ state: "synced", label: "云端已同步" });
+                const remoteState = normalizeWorkbenchState(remote.state);
+                const hasSharedRoster = Boolean(sharedMemberRoster.length);
+                const localHasContent = hasLocalDraftContent(state, { ignoreParticipants: hasSharedRoster });
+                const remoteHasContent = hasLocalDraftContent(remoteState, { ignoreParticipants: hasSharedRoster });
+                if (localHasContent && !remoteHasContent) {
+                    await saveLocalStateToCloudNow("已用本地草稿补全云端");
+                    return;
+                }
+                const hasConflict = (
+                    localHasContent
+                    && remoteHasContent
+                    && getComparableCloudPayload(state, { ignoreParticipants: hasSharedRoster }) !== getComparableCloudPayload(remoteState, { ignoreParticipants: hasSharedRoster })
+                );
+                if (hasConflict) {
+                    pendingCloudState = remoteState;
+                    pendingCloudUpdatedAt = remote.updated_at || "";
+                    setCloudStatus({
+                        state: "conflict",
+                        label: "需要选择版本",
+                        lastSyncedAt: remote.updated_at || "",
+                        message: "本地草稿和云端草稿不一致，选择后再继续同步"
+                    });
+                    return;
+                }
+                applyRemoteCloudState(remoteState, remote.updated_at);
                 return;
             }
-            await cloudClient.saveState(getCloudPayload(state));
-            setCloudStatus({ state: "synced", label: "云端已保存" });
-        } catch {
-            setCloudStatus({ state: "error", label: "云端同步失败" });
+            await saveLocalStateToCloudNow("已把本地草稿同步到云端");
+        } catch (error) {
+            const detail = describeAuthError(error, "sync");
+            setCloudStatus({ state: "error", label: "云端同步失败", message: detail.message });
         } finally {
             cloudHydrating = false;
         }
@@ -903,38 +1273,60 @@ export const mountGodWorkbenchPage = ({ root }) => {
 
     const initializeCloud = async () => {
         if (!cloudClient) {
-            setCloudStatus({ state: "unconfigured", label: "本地保存" });
+            setCloudStatus({ state: "unconfigured", label: "本地草稿" });
+            await loadPublicArchives();
             return;
         }
 
+        await loadPublicArchives();
+        const hasSharedRoster = await loadSharedMemberRoster();
         try {
             const session = await cloudClient.getSession();
             if (session?.user) {
                 setCloudStatus({
                     state: "authenticated",
                     label: "云端已连接",
-                    email: session.user.email || ""
+                    email: session.user.email || "",
+                    message: ""
                 });
+                if (!hasSharedRoster && state.participants.length) {
+                    await saveSharedMemberRosterToCloudNow("已把本地成员名单同步到云端");
+                }
                 await hydrateFromCloud();
             } else {
-                setCloudStatus({ state: "signedOut", label: "本地保存", email: "" });
+                setCloudStatus({ state: "signedOut", label: "本地草稿", email: "", message: "" });
             }
         } catch {
             setCloudStatus({ state: "error", label: "云端连接失败" });
         }
 
-        cloudClient.onAuthStateChange((_event, session) => {
+        cloudClient.onAuthStateChange((authEvent, session) => {
+            if (authEvent === "PASSWORD_RECOVERY") {
+                setCloudStatus({
+                    state: "passwordRecovery",
+                    label: "设置新密码",
+                    email: session?.user?.email || cloudStatus.email || "",
+                    message: "输入新密码后即可继续同步"
+                });
+                return;
+            }
             if (session?.user) {
+                if (cloudStatus.state === "conflict" || cloudStatus.state === "passwordRecovery") {
+                    return;
+                }
                 cloudStatus = {
                     state: "authenticated",
                     label: "云端已连接",
-                    email: session.user.email || ""
+                    email: session.user.email || "",
+                    message: cloudStatus.message || ""
                 };
                 renderNow();
                 void hydrateFromCloud();
                 return;
             }
-            setCloudStatus({ state: "signedOut", label: "本地保存", email: "" });
+            pendingCloudState = null;
+            pendingCloudUpdatedAt = "";
+            setCloudStatus({ state: "signedOut", label: "本地草稿", email: "", message: "" });
         });
     };
 
@@ -980,10 +1372,10 @@ export const mountGodWorkbenchPage = ({ root }) => {
             const password = String(formData.get("password") || "");
             const mode = event.submitter?.dataset.authMode || "sign-in";
             if (!cloudClient || !email || !password) {
-                setCloudStatus({ state: "signedOut", label: "无法登录" });
+                setCloudStatus({ state: "signedOut", label: "无法登录", message: "填写邮箱和密码后再继续" });
                 return;
             }
-            setCloudStatus({ state: "syncing", label: mode === "sign-up" ? "注册中" : "登录中" });
+            setCloudStatus({ state: "syncing", label: mode === "sign-up" ? "注册中" : "登录中", email, message: "" });
             void (mode === "sign-up" ? cloudClient.signUp(email, password) : cloudClient.signIn(email, password))
                 .then(({ data, error }) => {
                     if (error) {
@@ -993,14 +1385,49 @@ export const mountGodWorkbenchPage = ({ root }) => {
                         setCloudStatus({
                             state: "authenticated",
                             label: "云端已连接",
-                            email: data.session.user.email || email
+                            email: data.session.user.email || email,
+                            message: ""
                         });
                         void hydrateFromCloud();
                         return;
                     }
-                    setCloudStatus({ state: "signedOut", label: "检查邮箱", email });
+                    setCloudStatus({
+                        state: "signedOut",
+                        label: "检查邮箱或直接登录",
+                        email,
+                        message: "如果这是新邮箱，确认邮件会发到邮箱；如果一直没收到，可能已注册过，直接登录或用忘记密码"
+                    });
                 })
-                .catch(() => setCloudStatus({ state: "error", label: mode === "sign-up" ? "注册失败" : "登录失败" }));
+                .catch((error) => {
+                    const detail = describeAuthError(error, mode);
+                    setCloudStatus({ state: "error", label: detail.label, email, message: detail.message });
+                });
+            return;
+        }
+        if (form.dataset.form === "cloud-password-recovery") {
+            const password = String(formData.get("password") || "");
+            if (!cloudClient || !password) {
+                setCloudStatus({ state: "passwordRecovery", label: "设置新密码", message: "请输入新密码" });
+                return;
+            }
+            setCloudStatus({ state: "syncing", label: "保存新密码中", message: "" });
+            void cloudClient.updatePassword(password)
+                .then(({ data, error }) => {
+                    if (error) {
+                        throw error;
+                    }
+                    setCloudStatus({
+                        state: "authenticated",
+                        label: "云端已连接",
+                        email: data?.user?.email || cloudStatus.email || "",
+                        message: "新密码已保存"
+                    });
+                    void hydrateFromCloud();
+                })
+                .catch((error) => {
+                    const detail = describeAuthError(error, "reset-password");
+                    setCloudStatus({ state: "passwordRecovery", label: "保存失败", message: detail.message });
+                });
             return;
         }
         if (form.dataset.form === "participant") {
@@ -1048,18 +1475,13 @@ export const mountGodWorkbenchPage = ({ root }) => {
         if (action === "select-wish") {
             setState(selectWishForCurrentAngel(state, wishId));
         }
-        if (action === "apply-forced-swap") setState(applyForcedSwap(state));
         if (action === "undo-selection") setState(removeAssignment(state, state.assignments.at(-1)?.angelId));
         if (action === "reset-selection") setState(resetSelection(state));
         if (action === "set-completion") setState(setCompletionStatus(state, participantId, trigger.dataset.status));
-        if (action === "archive-round") setState(archiveCurrentRound(state));
+        if (action === "archive-round") void publishCurrentArchive();
         if (action === "restore-archive") setState(restoreArchivedRound(state, archiveId));
         if (action === "new-round") {
             setState(startNewRound(archiveCurrentRound(state)));
-        }
-        if (action === "clear-local") {
-            clearWorkbenchState();
-            setState(createInitialWorkbenchState());
         }
         if (action === "export-backup") {
             downloadTextFile(getBackupFilename(state), buildWorkbenchBackup(state), "application/json;charset=utf-8");
@@ -1067,8 +1489,67 @@ export const mountGodWorkbenchPage = ({ root }) => {
         }
         if (action === "cloud-sign-out" && cloudClient) {
             void cloudClient.signOut()
-                .then(() => setCloudStatus({ state: "signedOut", label: "本地保存", email: "" }))
-                .catch(() => setCloudStatus({ state: "error", label: "退出失败" }));
+                .then(() => setCloudStatus({ state: "signedOut", label: "本地草稿", email: "", message: "" }))
+                .catch(() => setCloudStatus({ state: "error", label: "退出失败", message: "稍后再试" }));
+        }
+        if (action === "resend-confirmation" && cloudClient) {
+            const email = trigger.dataset.email || cloudStatus.email || "";
+            if (!email) {
+                setCloudStatus({ state: "signedOut", label: "填写邮箱", message: "先填邮箱，再重发确认邮件" });
+                return;
+            }
+            setCloudStatus({ state: "syncing", label: "重发确认中", email, message: "" });
+            void cloudClient.resendSignupConfirmation(email)
+                .then(({ error }) => {
+                    if (error) {
+                        throw error;
+                    }
+                    setCloudStatus({
+                        state: "signedOut",
+                        label: "检查邮箱或直接登录",
+                        email,
+                        message: "如果这是新邮箱，确认邮件会发到邮箱；如果一直没收到，可能已注册过，直接登录或用忘记密码"
+                    });
+                })
+                .catch((error) => {
+                    const detail = describeAuthError(error, "sign-up");
+                    setCloudStatus({ state: "error", label: detail.label, email, message: detail.message });
+                });
+        }
+        if (action === "send-password-reset" && cloudClient) {
+            const form = trigger.closest("[data-form='cloud-auth']");
+            const email = String(new FormData(form).get("email") || "").trim();
+            if (!email) {
+                setCloudStatus({ state: "signedOut", label: "填写邮箱", message: "先填邮箱，再发送重置邮件" });
+                return;
+            }
+            setCloudStatus({ state: "syncing", label: "发送重置邮件中", email, message: "" });
+            void cloudClient.resetPassword(email)
+                .then(({ error }) => {
+                    if (error) {
+                        throw error;
+                    }
+                    setCloudStatus({
+                        state: "signedOut",
+                        label: "重置邮件已发送",
+                        email,
+                        message: "去邮箱点击链接，回到页面后设置新密码"
+                    });
+                })
+                .catch((error) => {
+                    const detail = describeAuthError(error, "reset-password");
+                    setCloudStatus({ state: "error", label: detail.label, email, message: detail.message });
+                });
+        }
+        if (action === "cloud-use-remote") {
+            if (!pendingCloudState) {
+                setCloudStatus({ state: "error", label: "云端草稿不可用", message: "重新登录后再试" });
+                return;
+            }
+            applyRemoteCloudState(pendingCloudState, pendingCloudUpdatedAt);
+        }
+        if (action === "cloud-use-local" && cloudClient) {
+            void saveLocalStateToCloudNow("已用本地草稿覆盖云端");
         }
         const copyActions = {
             "copy-reveal": [buildRevealMarkdown(state), "已复制"],
@@ -1076,8 +1557,7 @@ export const mountGodWorkbenchPage = ({ root }) => {
             "copy-reveal-tsv": [buildRevealTsv(state), "已复制 Excel"],
             "copy-theme-announcement": [buildThemeAnnouncement(state), "已复制主题"],
             "copy-blind-choice": [buildBlindChoiceText(state), "已复制列表"],
-            "copy-completion-followup": [buildCompletionFollowup(state), "已复制提醒"],
-            "copy-angel-notice": [buildAngelNotice(state), "已复制通知"]
+            "copy-completion-followup": [buildCompletionFollowup(state), "已复制提醒"]
         };
         if (copyActions[action]) {
             void copyText(copyActions[action][0]).then(() => setState({ ...state, toast: copyActions[action][1] }));
@@ -1085,9 +1565,13 @@ export const mountGodWorkbenchPage = ({ root }) => {
         if (action === "copy-single-wish-reminder") {
             void copyText(buildSingleWishReminder(state, participantId)).then(() => setState({ ...state, toast: "已复制催愿望" }));
         }
+        if (action === "export-reveal-png") {
+            void downloadRevealPng(`king-angel-${state.round.code}-reveal.png`, state)
+                .then(() => setState({ ...state, toast: "已导出 PNG" }))
+                .catch(() => setState({ ...state, toast: "图片导出失败" }));
+        }
         const exportActions = {
-            "export-csv": [`king-angel-${state.round.code}.csv`, buildRevealCsv(state), "text/csv;charset=utf-8", "已导出"],
-            "export-reveal-svg": [`king-angel-${state.round.code}-reveal.svg`, buildRevealSvg(state), "image/svg+xml;charset=utf-8", "已导出图片"]
+            "export-csv": [`king-angel-${state.round.code}.csv`, buildRevealCsv(state), "text/csv;charset=utf-8", "已导出"]
         };
         if (exportActions[action]) {
             downloadTextFile(...exportActions[action].slice(0, 3));

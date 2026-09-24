@@ -126,85 +126,80 @@
     white-space: nowrap;
 }
 
-.god-workbench__cloud-pill {
-    min-height: 1.85rem;
-    display: inline-flex;
-    align-items: center;
-    padding: 0 0.6rem;
-    border-radius: 999px;
-    background: rgba(255, 255, 250, 0.54);
-    color: rgba(33, 29, 29, 0.58);
-    font-size: 0.74rem;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-.god-workbench__more {
+.god-workbench__top-menu {
     position: relative;
 }
 
-.god-workbench__more summary {
+.god-workbench__top-menu summary {
     min-height: 1.85rem;
     display: inline-flex;
     align-items: center;
-    padding: 0 0.6rem;
+    gap: 0.35rem;
+    padding: 0 0.62rem;
     border-radius: 999px;
     background: rgba(255, 255, 250, 0.54);
     color: rgba(33, 29, 29, 0.62);
     cursor: pointer;
-    font-size: 0.76rem;
-    font-weight: 730;
     list-style: none;
+    font-size: 0.76rem;
+    font-weight: 740;
+    white-space: nowrap;
 }
 
-.god-workbench__more summary::-webkit-details-marker {
+.god-workbench__top-menu summary::-webkit-details-marker {
     display: none;
 }
 
-.god-workbench__more[open] summary {
+.god-workbench__top-menu summary strong {
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
+.god-workbench__top-menu summary span {
+    max-width: 7.5rem;
+    overflow: hidden;
+    color: rgba(33, 29, 29, 0.46);
+    font-size: 0.7rem;
+    font-weight: 740;
+    text-overflow: ellipsis;
+}
+
+.god-workbench__top-menu[open] summary,
+.god-workbench__top-menu summary:hover {
     background: var(--workbench-primary-soft);
     color: var(--workbench-ink);
 }
 
-.god-workbench__more > div {
+.god-workbench__top-menu--cloud.is-error summary,
+.god-workbench__top-menu--cloud.is-conflict summary {
+    color: var(--workbench-primary);
+    background: rgba(239, 135, 63, 0.18);
+}
+
+.god-workbench__top-menu-drop {
     position: absolute;
-    z-index: 20;
-    top: calc(100% + 0.35rem);
+    z-index: 30;
+    top: calc(100% + 0.42rem);
     right: 0;
-    min-width: 8.5rem;
-    display: grid;
-    gap: 0.35rem;
-    padding: 0.4rem;
+    width: min(48rem, calc(100vw - 2rem));
+    max-height: min(70dvh, 34rem);
+    overflow-y: auto;
+    padding: 0.75rem;
     border: 1px solid var(--workbench-line);
     border-radius: 1rem;
-    background: var(--workbench-panel-strong);
+    background: rgba(255, 255, 250, 0.92);
     box-shadow: var(--workbench-glass-shadow);
-    backdrop-filter: blur(18px) saturate(140%);
-    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(145%);
+    -webkit-backdrop-filter: blur(20px) saturate(145%);
 }
 
-.god-workbench__more button {
-    width: 100%;
-    min-height: 1.95rem;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0 0.64rem;
-    border: 0;
-    border-radius: 999px;
-    background: transparent;
-    color: rgba(33, 29, 29, 0.66);
-    font-size: 0.78rem;
-    font-weight: 730;
-    cursor: pointer;
+.god-workbench__top-menu[data-top-menu="archives"] .god-workbench__top-menu-drop {
+    width: min(32rem, calc(100vw - 2rem));
 }
 
-.god-workbench__more button:hover {
-    background: var(--workbench-primary-soft);
-}
-
-.god-workbench__more button:last-child {
-    color: var(--color-danger-ink);
+.god-workbench__top-menu-drop .god-workbench__utility-panel {
+    max-width: none;
+    margin: 0;
 }
 
 .god-workbench__members-toggle {
@@ -1228,47 +1223,17 @@
     color: var(--workbench-primary);
 }
 
-/* ── Forced swap card ───────────────────────────── */
-
-.god-workbench__swap-card {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.55rem;
-    padding: 0.72rem 0.9rem;
-    margin-bottom: 0.55rem;
-    border-radius: 1rem;
-    background: rgba(255, 200, 60, 0.12);
-}
-
-.god-workbench__swap-card span {
-    color: var(--color-text-muted);
-    font-size: 0.74rem;
-}
-
-.god-workbench__swap-card strong {
-    color: var(--color-text);
-    font-weight: 760;
-}
-
-.god-workbench__swap-card button {
-    min-height: 1.85rem;
-    padding: 0 0.64rem;
-    border: 0;
-    border-radius: 999px;
-    background: var(--workbench-primary);
-    color: #fffaf4;
-    font-size: 0.78rem;
-    font-weight: 760;
-    font-family: inherit;
-    cursor: pointer;
-    margin-left: auto;
-}
-
 .god-workbench__member-list,
 .god-workbench__archive-list {
     display: grid;
     gap: 0.45rem;
+}
+
+.god-workbench__archive-section-label {
+    color: var(--color-text-muted);
+    font-size: 0.74rem;
+    font-weight: 820;
+    margin-top: 0.2rem;
 }
 
 .god-workbench__member-setup {
@@ -1344,9 +1309,19 @@
 .god-workbench__cloud-form {
     min-width: min(100%, 31rem);
     display: grid;
-    grid-template-columns: repeat(2, minmax(8rem, 1fr)) auto auto;
+    grid-template-columns: repeat(2, minmax(8rem, 1fr)) repeat(3, auto);
     align-items: end;
     gap: 0.42rem;
+}
+
+.god-workbench__cloud-form--status,
+.god-workbench__cloud-form--conflict,
+.god-workbench__cloud-form--recovery {
+    grid-template-columns: minmax(8rem, 1fr) auto auto;
+}
+
+.god-workbench__cloud-form--conflict {
+    grid-template-columns: minmax(8rem, 1fr) repeat(3, auto);
 }
 
 .god-workbench__cloud-form label {
@@ -1369,47 +1344,17 @@
     white-space: nowrap;
 }
 
+.god-workbench__cloud-form small {
+    grid-column: 1 / -1;
+    color: rgba(33, 29, 29, 0.56);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
 .god-workbench__cloud-form button:first-of-type {
     background: var(--workbench-primary);
     color: #fffaf4;
-}
-
-.god-workbench__swap-card {
-    display: grid;
-    gap: 0.48rem;
-    min-height: 10rem;
-    align-content: center;
-    padding: 1rem;
-    border: 1px solid rgba(239, 135, 63, 0.22);
-    border-radius: 1rem;
-    background: rgba(239, 135, 63, 0.08);
-}
-
-.god-workbench__swap-card span {
-    color: var(--color-text-muted);
-    font-size: 0.78rem;
-    font-weight: 760;
-}
-
-.god-workbench__swap-card strong {
-    color: var(--workbench-ink);
-    font-size: 1.15rem;
-    font-weight: 860;
-}
-
-.god-workbench__swap-card button {
-    justify-self: start;
-    min-height: 2.15rem;
-    border: 0;
-    border-radius: 999px;
-    background: var(--workbench-panel-strong);
-    color: var(--workbench-ink);
-    font-size: 0.8rem;
-    font-weight: 770;
-}
-
-.god-workbench__swap-card button:hover {
-    background: var(--workbench-primary-soft);
 }
 
 .god-workbench__completion-list {
@@ -1545,94 +1490,7 @@
     color: var(--color-text-muted);
 }
 
-/* ── Utility bar ────────────────────────────────── */
-
-.god-workbench__utility {
-    position: sticky;
-    bottom: 0;
-    z-index: 10;
-    display: flex;
-    align-items: stretch;
-    gap: 0;
-    padding: 0;
-    border-top: 1px solid var(--workbench-glass-border);
-    background: rgba(255, 255, 250, 0.72);
-    box-shadow: 0 -0.6rem 2rem rgba(70, 52, 40, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.62);
-    backdrop-filter: blur(20px) saturate(150%);
-    -webkit-backdrop-filter: blur(20px) saturate(150%);
-}
-
-.god-workbench__utility-item {
-    flex: 1 1 0;
-    min-width: 0;
-}
-
-.god-workbench__utility-item summary {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    min-height: 2.65rem;
-    padding: 0 0.6rem;
-    cursor: pointer;
-    list-style: none;
-    border-radius: 0;
-    background: transparent;
-    transition: background 180ms ease;
-}
-
-.god-workbench__utility-item summary::-webkit-details-marker {
-    display: none;
-}
-
-.god-workbench__utility-item summary:hover {
-    background: rgba(255, 255, 250, 0.54);
-}
-
-.god-workbench__utility-item[open] summary {
-    background: var(--workbench-primary-soft);
-}
-
-.god-workbench__utility-item summary strong {
-    font-size: 0.72rem;
-    font-weight: 780;
-    color: rgba(33, 29, 29, 0.55);
-    white-space: nowrap;
-}
-
-.god-workbench__utility-item[open] summary strong {
-    color: var(--workbench-ink);
-}
-
-.god-workbench__utility-item summary span {
-    font-size: 0.66rem;
-    font-weight: 740;
-    color: rgba(33, 29, 29, 0.38);
-    white-space: nowrap;
-    max-width: 8ch;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.god-workbench__utility-drop {
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    right: 0;
-    z-index: 5;
-    max-height: 55dvh;
-    overflow-y: auto;
-    padding: 1rem clamp(1rem, 3vw, 2rem) 0.75rem;
-    border-top: 1px solid var(--workbench-line);
-    background: rgba(255, 255, 250, 0.9);
-    box-shadow: 0 -0.4rem 1.6rem rgba(70, 52, 40, 0.08);
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-}
-
-.god-workbench__utility-item:not([open]) .god-workbench__utility-drop {
-    display: none;
-}
+/* ── Topbar menu panels ─────────────────────────── */
 
 .god-workbench__utility-panel {
     max-width: 780px;
@@ -1735,8 +1593,7 @@
     .god-workbench__actions button,
     .god-workbench__completion-row,
     .god-workbench__completion-option,
-    .god-workbench__more summary,
-    .god-workbench__utility-item summary,
+    .god-workbench__top-menu summary,
     .god-workbench__top-actions button,
     .god-workbench__member-row button,
     .god-workbench__archive-row button,
@@ -1826,6 +1683,32 @@
 
     .god-workbench__toast {
         display: none;
+    }
+
+    .god-workbench__top-actions {
+        gap: 0.32rem;
+    }
+
+    .god-workbench__top-menu summary {
+        min-height: 1.75rem;
+        padding: 0 0.48rem;
+    }
+
+    .god-workbench__top-menu summary span {
+        display: none;
+    }
+
+    .god-workbench__top-menu-drop {
+        position: fixed;
+        top: 3.2rem;
+        right: 0.6rem;
+        left: 0.6rem;
+        width: auto;
+        max-height: min(72dvh, 34rem);
+    }
+
+    .god-workbench__top-menu[data-top-menu="archives"] .god-workbench__top-menu-drop {
+        width: auto;
     }
 
     .god-workbench__stepper {
@@ -2022,16 +1905,4 @@
         width: 6.4rem;
     }
 
-    .god-workbench__utility-item summary strong {
-        font-size: 0.64rem;
-    }
-
-    .god-workbench__utility-item summary span {
-        display: none;
-    }
-
-    .god-workbench__utility-drop {
-        max-height: 40dvh;
-        padding: 0.75rem 0.55rem 0.55rem;
-    }
 }

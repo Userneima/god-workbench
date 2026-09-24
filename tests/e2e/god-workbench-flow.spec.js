@@ -12,7 +12,7 @@ const addMembers = async (page, names) => {
     await page.getByRole("button", { name: /成员 \d+人/ }).click();
     const input = page.getByLabel("花名");
     await input.fill(names.join("、"));
-    await input.press("Enter");
+    await page.getByRole("button", { name: "添加" }).click();
     await expect(page.getByRole("button", { name: new RegExp(`成员 ${names.length}人`) })).toBeVisible();
     await page.getByRole("button", { name: "关闭" }).click();
 };
@@ -92,8 +92,10 @@ test("host can complete one full round through the real UI", async ({ page }) =>
     await expect(page.locator(".god-workbench__reveal-table tbody tr")).toHaveCount(3);
     await expect(page.locator(".god-workbench__reveal-table tbody")).toContainText("天使");
 
-    await page.getByRole("button", { name: "归档本轮" }).click();
-    await expect(page.getByText("归档 1轮")).toBeVisible();
+    await page.getByRole("button", { name: "本地归档" }).click();
+    await page.locator("[data-top-menu='archives'] summary").click();
+    await expect(page.locator("[data-top-menu='archives']")).toContainText("本地恢复");
+    await expect(page.locator("[data-top-menu='archives']")).toContainText("毕业季");
 
     const state = await storedState(page);
     expect(state.round.god).toBe("上帝");

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-    buildAngelNotice,
     buildRevealMarkdown,
     createInitialWorkbenchState,
     getAvailableWishes,
@@ -10,10 +9,12 @@ import {
 import {
     addParticipant,
     addWish,
+    applyMemberRoster,
     archiveCurrentRound,
     buildBlindChoiceText,
     buildCompletionFollowup,
     buildCompletionReminder,
+    buildPublicArchiveRecord,
     buildRevealAnnouncement,
     buildRevealCsv,
     buildRevealSvg,
@@ -59,7 +60,7 @@ const mountSampleWorkbench = () => {
 const openStage = (root, target) => {
     const btn = root.querySelector(`[data-action="scroll-stage"][data-stage="${target}"]`);
     if (btn) { btn.click(); return; }
-    const util = root.querySelector(`.god-workbench__utility-item[data-utility="${target}"]`);
+    const util = root.querySelector(`[data-top-menu="${target}"]`);
     if (util) util.open = true;
 };
 
@@ -113,9 +114,10 @@ describe("god workbench", () => {
         const activeRow = root.querySelector(".god-workbench__stage-row.is-active");
         expect(activeRow.dataset.stage).toBe("members");
         expect(root.textContent).not.toContain("请先登录");
-        const dataItem = root.querySelector('.god-workbench__utility-item[data-utility="data"]');
+        const dataItem = root.querySelector('[data-top-menu="cloud"]');
         dataItem.open = true;
-        expect(dataItem.textContent).toContain("本地保存");
+        expect(dataItem.textContent).toContain("本地草稿");
+        expect(dataItem.textContent).toContain("未接云端");
     });
 
     it("asks for the round god before theme setup when members already exist", () => {
@@ -126,6 +128,36 @@ describe("god workbench", () => {
         expect(firstPanel.textContent).toContain("本轮的上帝，你是谁？");
         expect(firstPanel.querySelector(".god-workbench__setting-field--inline [data-field='god']")).not.toBeNull();
         expect(firstPanel.querySelector('[data-field="god"]').tagName).toBe("SELECT");
+    });
+
+    it("migrates round data by member name when applying a shared roster with new ids", () => {
+        const state = {
+            ...createInitialWorkbenchState(),
+            round: { ...createInitialWorkbenchState().round, god: "上帝", theme: "测试" },
+            participants: [
+                { id: "old_god", name: "上帝" },
+                { id: "old_king", name: "北桥" },
+                { id: "old_angel", name: "小满" }
+            ],
+            wishes: [
+                { id: "w_king", ownerId: "old_king", body: "北桥的愿望", status: "approved" },
+                { id: "w_angel", ownerId: "old_angel", body: "小满的愿望", status: "approved" }
+            ],
+            selectionOrder: ["old_king", "old_angel"],
+            assignments: [{ angelId: "old_king", wishId: "w_angel" }],
+            completionByParticipantId: { old_king: "done", old_angel: "pending" }
+        };
+
+        const next = applyMemberRoster(state, [
+            { id: "shared_god", name: "上帝" },
+            { id: "shared_king", name: "北桥" },
+            { id: "shared_angel", name: "小满" }
+        ]);
+
+        expect(next.wishes.map((wish) => wish.ownerId)).toEqual(["shared_king", "shared_angel"]);
+        expect(next.selectionOrder).toEqual(["shared_king", "shared_angel"]);
+        expect(next.assignments).toEqual([{ angelId: "shared_king", wishId: "w_angel" }]);
+        expect(next.completionByParticipantId.shared_king).toBe("done");
     });
 
     it("continues to theme setup after choosing the round god", () => {
@@ -174,28 +206,26 @@ describe("god workbench", () => {
         expect(firstPanel.textContent).toContain("生成揭晓");
     });
 
-    it("keeps destructive round actions behind the more menu", () => {
+    it("does not render the old catch-all more menu", () => {
         const root = mountWorkbench();
-        const moreMenu = root.querySelector(".god-workbench__more");
-        expect(moreMenu.textContent).toContain("归档本轮");
-        expect(moreMenu.textContent).toContain("开新一轮");
-        expect(moreMenu.textContent).toContain("清空本地");
-        expect(moreMenu.open).toBe(false);
+        expect(root.querySelector(".god-workbench__more")).toBeNull();
+        expect(root.textContent).not.toContain("清空本地");
     });
 
-    it("opens low-frequency panels from the utility bar", () => {
+    it("opens archive and sync panels from the top bar", () => {
         const root = mountSampleWorkbench();
-        const archiveItem = root.querySelector('.god-workbench__utility-item[data-utility="archives"]');
+        const archiveItem = root.querySelector('[data-top-menu="archives"]');
         expect(archiveItem.open).toBe(false);
         archiveItem.open = true;
         expect(archiveItem.querySelector(".god-workbench__archive-list")).not.toBeNull();
-        const dataItem = root.querySelector('.god-workbench__utility-item[data-utility="data"]');
+        const dataItem = root.querySelector('[data-top-menu="cloud"]');
         expect(dataItem.open).toBe(false);
         dataItem.open = true;
-        expect(dataItem.textContent).toContain("本地保存");
+        expect(dataItem.textContent).toContain("本地草稿");
+        expect(dataItem.textContent).toContain("未接云端");
     });
 
-    it("offers a forced swap when the current angel only has their own wish left", () => {
+    it("uses undo and reset instead of the old forced swap panel", () => {
         const state = {
             ...createInitialWorkbenchState(),
             round: { ...createInitialWorkbenchState().round, theme: "测试" },
@@ -212,10 +242,13 @@ describe("god workbench", () => {
         };
         saveWorkbenchState(state);
         const root = mountWorkbench();
-        expect(root.querySelector(".god-workbench__swap-card").textContent).toContain("强制交换");
-        root.querySelector('[data-action="apply-forced-swap"]').click();
-        expect(root.querySelector(".god-workbench__wish-table").textContent).toContain("北桥");
-        expect(root.querySelector(".god-workbench__wish-table").textContent).toContain("小满");
+        const selectionBar = root.querySelector(".god-workbench__selection-bar");
+        expect(root.querySelector(".god-workbench__swap-card")).toBeNull();
+        expect(selectionBar.querySelector(".god-workbench__handoff span").textContent).toBe("截图给");
+        expect(selectionBar.querySelector(".god-workbench__handoff strong").textContent).toBe("小满");
+        expect(selectionBar.querySelector('[data-action="copy-blind-choice"]').disabled).toBe(true);
+        expect(selectionBar.querySelector('[data-action="undo-selection"]').disabled).toBe(false);
+        expect(selectionBar.querySelector('[data-action="reset-selection"]').disabled).toBe(false);
     });
 
     it("uses the stepper as clickable phase navigation", () => {
@@ -514,13 +547,6 @@ describe("god workbench", () => {
         expect(rows[0].querySelector('[data-action="select-wish"]').textContent).toContain("记录选择");
     });
 
-    it("builds the angel notice text for the last selection", () => {
-        const state = selectWishForCurrentAngel(createSampleWorkbenchState(), "w3");
-        const notice = buildAngelNotice(state);
-
-        expect(notice).toBe("你选到的是：小满\n愿望：想有人陪我完成一次城市散步");
-    });
-
     it("exports reveal rows as markdown", () => {
         const state = createSampleWorkbenchState();
         const nextState = selectWishForCurrentAngel(state, "w3");
@@ -606,6 +632,8 @@ describe("god workbench", () => {
         expect(revealPanel.textContent).toContain("复制 Markdown");
         expect(revealPanel.textContent).toContain("复制 Excel");
         expect(revealPanel.textContent).toContain("导出图片");
+        expect(revealPanel.querySelector('[data-action="export-reveal-png"]')).not.toBeNull();
+        expect(revealPanel.querySelector('[data-action="export-reveal-svg"]')).toBeNull();
     });
 
     it("exports reveal rows as spreadsheet-friendly tsv", () => {
@@ -618,7 +646,7 @@ describe("god workbench", () => {
         expect(buildRevealCsv(nextState).split("\n")[0]).toBe("\"序号\",\"国王\",\"愿望\",\"天使\",\"愿望完成状态\"");
     });
 
-    it("exports reveal rows as a downloadable image svg", () => {
+    it("builds reveal rows as the image render source", () => {
         const svg = buildRevealSvg(selectWishForCurrentAngel(createSampleWorkbenchState(), "w3"));
 
         expect(svg).toContain("<svg");
@@ -634,19 +662,6 @@ describe("god workbench", () => {
         const restored = loadWorkbenchState();
 
         expect(restored.participants.some((participant) => participant.name === "山川")).toBe(true);
-    });
-
-    it("keeps the shared member roster when clearing the round", () => {
-        const root = mountWorkbench();
-
-        root.querySelector('form[data-form="participant"] input[name="name"]').value = "山川";
-        root.querySelector('form[data-form="participant"]').dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-        expect(root.textContent).toContain("山川");
-        root.querySelector('[data-action="clear-local"]').click();
-        root.querySelector('[data-action="toggle-members"]').click();
-        expect(root.querySelector(".god-workbench__members-overlay-panel").textContent).toContain("山川");
-        openStage(root, "wishes");
-        expect(root.querySelector(".god-workbench__wish-table").textContent).toContain("山川");
     });
 
     it("generates reusable god messages from the theme", () => {
@@ -692,6 +707,21 @@ describe("god workbench", () => {
         expect(archived.archives).toHaveLength(1);
         expect(restored.assignments).toHaveLength(1);
         expect(restored.toast).toBe("已恢复");
+    });
+
+    it("builds a public archive snapshot without exposing the full draft state", () => {
+        const state = selectWishForCurrentAngel(createSampleWorkbenchState(), "w3");
+        const archive = buildPublicArchiveRecord(state);
+
+        expect(archive.schema_version).toBe(1);
+        expect(archive.round_id).toBe("04");
+        expect(archive.theme).toBe("夏日");
+        expect(archive.god_name).toBe("白榆");
+        expect(archive.reveal_rows.length).toBeGreaterThan(0);
+        expect(archive.completion_rows.length).toBeGreaterThan(0);
+        expect(archive).not.toHaveProperty("participants");
+        expect(archive).not.toHaveProperty("wishes");
+        expect(archive).not.toHaveProperty("assignments");
     });
 
     it("records wishes from the visible wish form", () => {

@@ -13,7 +13,7 @@ const mountWorkbench = () => {
 const openStage = (root, target) => {
     const btn = root.querySelector(`[data-action="scroll-stage"][data-stage="${target}"]`);
     if (btn) { btn.click(); return; }
-    const util = root.querySelector(`.god-workbench__utility-item[data-utility="${target}"]`);
+    const util = root.querySelector(`[data-top-menu="${target}"]`);
     if (util) util.open = true;
 };
 
@@ -41,14 +41,15 @@ describe("god workbench archive", () => {
         const root = mountWorkbench();
         const revealPanel = root.querySelector(".god-workbench__panel--reveal");
 
-        expect(revealPanel.textContent).toContain("归档本轮");
+        expect(revealPanel.textContent).toContain("本地归档");
         revealPanel.querySelector('[data-action="archive-round"]').click();
 
         expect(root.textContent).toContain("已归档");
-        expect(root.querySelector('.god-workbench__panel--reveal [data-action="archive-round"]').textContent).toBe("更新归档");
-        const archiveItem = root.querySelector('.god-workbench__utility-item[data-utility="archives"]');
+        expect(root.querySelector('.god-workbench__panel--reveal [data-action="archive-round"]').textContent).toBe("更新本地归档");
+        const archiveItem = root.querySelector('[data-top-menu="archives"]');
         archiveItem.open = true;
-        expect(archiveItem.textContent).toContain("1轮");
+        expect(archiveItem.textContent).toContain("本地恢复");
+        expect(archiveItem.textContent).toContain("夏日");
     });
 
     it("updates the same round archive instead of creating duplicates", () => {
@@ -59,9 +60,10 @@ describe("god workbench archive", () => {
         archiveButton.click();
         archiveButton.click();
 
-        const archiveItem = root.querySelector('.god-workbench__utility-item[data-utility="archives"]');
+        const archiveItem = root.querySelector('[data-top-menu="archives"]');
         archiveItem.open = true;
-        expect(archiveItem.textContent).toContain("1轮");
+        expect(archiveItem.textContent).toContain("本地恢复");
+        expect(archiveItem.textContent).toContain("夏日");
     });
 
     it("starts the next round from the reveal panel after archiving the current round", () => {
@@ -73,9 +75,10 @@ describe("god workbench archive", () => {
         const firstPanel = root.querySelector(".god-workbench__stage-row.is-active .god-workbench__panel");
         expect(firstPanel.classList.contains("god-workbench__panel--god")).toBe(true);
         expect(root.textContent).toContain("新一轮");
-        const archiveItem = root.querySelector('.god-workbench__utility-item[data-utility="archives"]');
+        const archiveItem = root.querySelector('[data-top-menu="archives"]');
         archiveItem.open = true;
-        expect(archiveItem.textContent).toContain("1轮");
+        expect(archiveItem.textContent).toContain("本地恢复");
+        expect(archiveItem.textContent).toContain("夏日");
     });
 
     it("returns to round god selection when starting a new round from a focused reveal stage", () => {
