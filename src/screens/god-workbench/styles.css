@@ -1357,6 +1357,21 @@
     color: #fffaf4;
 }
 
+.god-workbench__password-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.36rem;
+}
+
+.god-workbench__cloud-form .god-workbench__password-field .god-workbench__password-toggle {
+    min-width: 3.2rem;
+    background: var(--workbench-soft);
+    color: var(--color-text);
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
 .god-workbench__completion-list {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));

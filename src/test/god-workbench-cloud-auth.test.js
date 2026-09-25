@@ -181,6 +181,18 @@ describe("god workbench cloud auth", () => {
         });
     });
 
+    it("lets people reveal the password they typed", async () => {
+        const root = await mountWorkbench();
+        const form = root.querySelector("[data-form='cloud-auth']");
+        const toggle = form.querySelector("[data-action='toggle-password']");
+        expect(form.elements.password.type).toBe("password");
+        toggle.click();
+        expect(form.elements.password.type).toBe("text");
+        expect(toggle.textContent).toBe("隐藏");
+        toggle.click();
+        expect(form.elements.password.type).toBe("password");
+    });
+
     it("shows the member roster read-only to non-admin accounts", async () => {
         supabaseMock.state.remoteRoster = {
             participants: [{ id: "p_cloud_1", name: "云端成员" }],

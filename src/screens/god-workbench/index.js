@@ -845,7 +845,10 @@ const renderCloudAuth = (cloudStatus) => {
             </label>
             <label>
                 <span>密码</span>
-                <input type="password" name="password" autocomplete="current-password" minlength="6" required />
+                <div class="god-workbench__password-field">
+                    <input type="password" name="password" autocomplete="current-password" minlength="6" required />
+                    <button type="button" class="god-workbench__password-toggle" data-action="toggle-password" aria-pressed="false">显示</button>
+                </div>
             </label>
             <button type="submit" data-auth-mode="sign-in">登录</button>
             <button type="submit" data-auth-mode="sign-up">注册</button>
@@ -1477,6 +1480,17 @@ export const mountGodWorkbenchPage = ({ root }) => {
         const participantId = trigger.dataset.participantId;
         const angelId = trigger.dataset.angelId;
         const archiveId = trigger.dataset.archiveId;
+
+        if (action === "toggle-password") {
+            const input = trigger.closest(".god-workbench__password-field")?.querySelector("input");
+            if (input) {
+                const reveal = input.type === "password";
+                input.type = reveal ? "text" : "password";
+                trigger.textContent = reveal ? "隐藏" : "显示";
+                trigger.setAttribute("aria-pressed", String(reveal));
+            }
+            return;
+        }
 
         if (action === "scroll-stage") {
             const stage = trigger.dataset.stage;
