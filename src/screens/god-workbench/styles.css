@@ -1678,7 +1678,7 @@
     }
 
     .god-workbench__round-context strong {
-        font-size: 0.8rem;
+        display: none;
     }
 
     .god-workbench__toast {

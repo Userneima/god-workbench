@@ -1,5 +1,5 @@
 import { escapeHtml } from "../../lib/helpers.js";
-import { createCloudSyncClient } from "./cloud.js";
+import { accountLabelFromUser, createCloudSyncClient, loginEmailFromIdentifier, ROSTER_ADMIN_USER_IDS } from "./cloud.js";
 import {
     addParticipant,
     addWish,
@@ -255,7 +255,16 @@ const describeAuthError = (error, mode) => {
         return { label: "邮箱未确认", message: "先去邮箱点击确认链接，再回来登录" };
     }
     if (message.includes("invalid login credentials")) {
-        return { label: "邮箱或密码不对", message: "检查邮箱、密码，或用“忘记密码”重置" };
+        return { label: "花名或密码不对", message: "还没有账号就点注册" };
+    }
+    if (message.includes("name_taken")) {
+        return { label: "这个花名已注册", message: "直接登录；忘了密码找章鱼烧重置" };
+    }
+    if (message.includes("weak_password")) {
+        return { label: "密码太短", message: "密码至少 6 位" };
+    }
+    if (message.includes("invalid_name")) {
+        return { label: "花名不可用", message: "花名最多 24 个字" };
     }
     if (message.includes("already registered") || message.includes("user already registered")) {
         return { label: "邮箱可能已注册", message: "可以直接登录，或用“忘记密码”重置" };
@@ -405,22 +414,29 @@ const renderThemeKickoff = (state) => `
 
 /* ── Members panel ──────────────────────────────── */
 
-const renderParticipants = (state) => state.participants.length ? state.participants.map((participant, index) => `
+// With cloud on, the shared roster is admin-only (RLS enforces it; this only hides the controls).
+const canEditMemberRoster = (cloudStatus) => (
+    cloudStatus?.state === "unconfigured" || ROSTER_ADMIN_USER_IDS.includes(cloudStatus?.userId)
+);
+
+const renderParticipants = (state, canEdit) => state.participants.length ? state.participants.map((participant, index) => `
     <div class="god-workbench__member-row">
         <span class="god-workbench__member-order">${escapeHtml(String(index + 1).padStart(2, "0"))}</span>
         <strong>${escapeHtml(participant.name)}</strong>
-        <button type="button" data-action="remove-participant" data-participant-id="${escapeHtml(participant.id)}">移除</button>
+        ${canEdit ? `<button type="button" data-action="remove-participant" data-participant-id="${escapeHtml(participant.id)}">移除</button>` : ""}
     </div>
 `).join("") : `<div class="god-workbench__empty">暂无成员</div>`;
 
-const renderMembersPanel = (state) => `
+const renderMembersPanel = (state, canEdit = true) => `
     <div class="god-workbench__utility-panel">
         <section class="god-workbench__member-setup">
-            <form class="god-workbench__inline-form" data-form="participant">
-                <input type="text" name="name" placeholder="输入花名" aria-label="花名" autocomplete="off" data-field="participant-name">
-                <button type="submit">添加</button>
-            </form>
-            <div class="god-workbench__member-list" aria-label="成员名单">${renderParticipants(state)}</div>
+            ${canEdit ? `
+                <form class="god-workbench__inline-form" data-form="participant">
+                    <input type="text" name="name" placeholder="输入花名" aria-label="花名" autocomplete="off" data-field="participant-name">
+                    <button type="submit">添加</button>
+                </form>
+            ` : ""}
+            <div class="god-workbench__member-list" aria-label="成员名单">${renderParticipants(state, canEdit)}</div>
         </section>
     </div>
 `;
@@ -820,21 +836,19 @@ const renderCloudAuth = (cloudStatus) => {
         `;
     }
 
-    const emailValue = cloudStatus.email ? ` value="${escapeHtml(cloudStatus.email)}"` : "";
+    const accountValue = cloudStatus.email ? ` value="${escapeHtml(cloudStatus.email)}"` : "";
     return `
         <form class="god-workbench__cloud-form" data-form="cloud-auth">
             <label>
-                <span>邮箱</span>
-                <input type="email" name="email" autocomplete="email" required${emailValue} />
+                <span>花名</span>
+                <input type="text" name="account" autocomplete="username" autocapitalize="off" required${accountValue} />
             </label>
             <label>
                 <span>密码</span>
-                <input type="password" name="password" autocomplete="current-password" required />
+                <input type="password" name="password" autocomplete="current-password" minlength="6" required />
             </label>
             <button type="submit" data-auth-mode="sign-in">登录</button>
             <button type="submit" data-auth-mode="sign-up">注册</button>
-            <button type="button" data-action="send-password-reset">忘记密码</button>
-            ${cloudStatus.email ? `<button type="button" data-action="resend-confirmation" data-email="${escapeHtml(cloudStatus.email)}">重发确认</button>` : ""}
             ${detail ? `<small>${escapeHtml(detail)}</small>` : ""}
         </form>
     `;
@@ -987,7 +1001,7 @@ const render = (root, state, cloudStatus, membersPanelOpen = false, publicArchiv
                         <h3>成员名单</h3>
                         <button type="button" data-action="toggle-members" aria-label="关闭">×</button>
                     </div>
-                    ${renderMembersPanel(state)}
+                    ${renderMembersPanel(state, canEditMemberRoster(cloudStatus))}
                 </div>
             </div>
         </main>
@@ -1289,15 +1303,16 @@ export const mountGodWorkbenchPage = ({ root }) => {
                 setCloudStatus({
                     state: "authenticated",
                     label: "云端已连接",
-                    email: session.user.email || "",
+                    email: accountLabelFromUser(session.user),
+                    userId: session.user.id || "",
                     message: ""
                 });
-                if (!hasSharedRoster && state.participants.length) {
+                if (!hasSharedRoster && state.participants.length && canEditMemberRoster(cloudStatus)) {
                     await saveSharedMemberRosterToCloudNow("已把本地成员名单同步到云端");
                 }
                 await hydrateFromCloud();
             } else {
-                setCloudStatus({ state: "signedOut", label: "本地草稿", email: "", message: "" });
+                setCloudStatus({ state: "signedOut", label: "本地草稿", email: "", userId: "", message: "" });
             }
         } catch {
             setCloudStatus({ state: "error", label: "云端连接失败" });
@@ -1308,7 +1323,8 @@ export const mountGodWorkbenchPage = ({ root }) => {
                 setCloudStatus({
                     state: "passwordRecovery",
                     label: "设置新密码",
-                    email: session?.user?.email || cloudStatus.email || "",
+                    email: accountLabelFromUser(session?.user) || cloudStatus.email || "",
+                    userId: session?.user?.id || cloudStatus.userId || "",
                     message: "输入新密码后即可继续同步"
                 });
                 return;
@@ -1320,7 +1336,8 @@ export const mountGodWorkbenchPage = ({ root }) => {
                 cloudStatus = {
                     state: "authenticated",
                     label: "云端已连接",
-                    email: session.user.email || "",
+                    email: accountLabelFromUser(session.user),
+                    userId: session.user.id || "",
                     message: cloudStatus.message || ""
                 };
                 renderNow();
@@ -1329,7 +1346,7 @@ export const mountGodWorkbenchPage = ({ root }) => {
             }
             pendingCloudState = null;
             pendingCloudUpdatedAt = "";
-            setCloudStatus({ state: "signedOut", label: "本地草稿", email: "", message: "" });
+            setCloudStatus({ state: "signedOut", label: "本地草稿", email: "", userId: "", message: "" });
         });
     };
 
@@ -1371,15 +1388,19 @@ export const mountGodWorkbenchPage = ({ root }) => {
         event.preventDefault();
         const formData = new FormData(form);
         if (form.dataset.form === "cloud-auth") {
-            const email = String(formData.get("email") || "").trim();
+            const email = String(formData.get("account") || "").trim();
             const password = String(formData.get("password") || "");
             const mode = event.submitter?.dataset.authMode || "sign-in";
             if (!cloudClient || !email || !password) {
-                setCloudStatus({ state: "signedOut", label: "无法登录", message: "填写邮箱和密码后再继续" });
+                setCloudStatus({ state: "signedOut", label: "无法登录", message: "填写花名和密码后再继续" });
                 return;
             }
             setCloudStatus({ state: "syncing", label: mode === "sign-up" ? "注册中" : "登录中", email, message: "" });
-            void (mode === "sign-up" ? cloudClient.signUp(email, password) : cloudClient.signIn(email, password))
+            const isEmailAccount = email.includes("@");
+            const authRequest = mode === "sign-up"
+                ? (isEmailAccount ? cloudClient.signUp(email, password) : cloudClient.signUpWithName(email, password))
+                : cloudClient.signIn(loginEmailFromIdentifier(email), password);
+            void authRequest
                 .then(({ data, error }) => {
                     if (error) {
                         throw error;
@@ -1388,7 +1409,8 @@ export const mountGodWorkbenchPage = ({ root }) => {
                         setCloudStatus({
                             state: "authenticated",
                             label: "云端已连接",
-                            email: data.session.user.email || email,
+                            email: accountLabelFromUser(data.session.user) || email,
+                            userId: data.session.user.id || "",
                             message: ""
                         });
                         void hydrateFromCloud();
@@ -1433,7 +1455,7 @@ export const mountGodWorkbenchPage = ({ root }) => {
                 });
             return;
         }
-        if (form.dataset.form === "participant") {
+        if (form.dataset.form === "participant" && canEditMemberRoster(cloudStatus)) {
             addParticipantsFromText(formData.get("name"));
         }
         if (form.dataset.form === "wish") {
@@ -1471,7 +1493,7 @@ export const mountGodWorkbenchPage = ({ root }) => {
             return;
         }
 
-        if (action === "remove-participant") {
+        if (action === "remove-participant" && canEditMemberRoster(cloudStatus)) {
             setState(removeParticipant(state, participantId), { syncMemberRoster: true });
         }
         if (action === "remove-wish") setState(removeWish(state, wishId));
@@ -1492,57 +1514,13 @@ export const mountGodWorkbenchPage = ({ root }) => {
         }
         if (action === "cloud-sign-out" && cloudClient) {
             void cloudClient.signOut()
-                .then(() => setCloudStatus({ state: "signedOut", label: "本地草稿", email: "", message: "" }))
+                .then(() => {
+                    // The draft is already in this account's cloud row; clear it from this device
+                    // so the next person on the same phone or computer cannot see it.
+                    cloudStatus = { ...cloudStatus, state: "signedOut", label: "本地草稿", email: "", userId: "", message: "" };
+                    setState(applyMemberRoster(createInitialWorkbenchState(), state.participants), { syncCloud: false });
+                })
                 .catch(() => setCloudStatus({ state: "error", label: "退出失败", message: "稍后再试" }));
-        }
-        if (action === "resend-confirmation" && cloudClient) {
-            const email = trigger.dataset.email || cloudStatus.email || "";
-            if (!email) {
-                setCloudStatus({ state: "signedOut", label: "填写邮箱", message: "先填邮箱，再重发确认邮件" });
-                return;
-            }
-            setCloudStatus({ state: "syncing", label: "重发确认中", email, message: "" });
-            void cloudClient.resendSignupConfirmation(email)
-                .then(({ error }) => {
-                    if (error) {
-                        throw error;
-                    }
-                    setCloudStatus({
-                        state: "signedOut",
-                        label: "检查邮箱或直接登录",
-                        email,
-                        message: "如果这是新邮箱，确认邮件会发到邮箱；如果一直没收到，可能已注册过，直接登录或用忘记密码"
-                    });
-                })
-                .catch((error) => {
-                    const detail = describeAuthError(error, "sign-up");
-                    setCloudStatus({ state: "error", label: detail.label, email, message: detail.message });
-                });
-        }
-        if (action === "send-password-reset" && cloudClient) {
-            const form = trigger.closest("[data-form='cloud-auth']");
-            const email = String(new FormData(form).get("email") || "").trim();
-            if (!email) {
-                setCloudStatus({ state: "signedOut", label: "填写邮箱", message: "先填邮箱，再发送重置邮件" });
-                return;
-            }
-            setCloudStatus({ state: "syncing", label: "发送重置邮件中", email, message: "" });
-            void cloudClient.resetPassword(email)
-                .then(({ error }) => {
-                    if (error) {
-                        throw error;
-                    }
-                    setCloudStatus({
-                        state: "signedOut",
-                        label: "重置邮件已发送",
-                        email,
-                        message: "去邮箱点击链接，回到页面后设置新密码"
-                    });
-                })
-                .catch((error) => {
-                    const detail = describeAuthError(error, "reset-password");
-                    setCloudStatus({ state: "error", label: detail.label, email, message: detail.message });
-                });
         }
         if (action === "cloud-use-remote") {
             if (!pendingCloudState) {

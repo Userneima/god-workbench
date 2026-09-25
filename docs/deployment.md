@@ -24,13 +24,25 @@ VITE_GOD_WORKBENCH_DOCUMENT_ID=default
 
 The publishable key is safe for browser use. Do not put a Supabase `service_role` or secret key in static hosting environment variables.
 
-## Auth Email
+## Hosting
 
-Registration and login use Supabase Auth. The app does not implement its own verification-code system.
+Production is on Vercel: https://god-workbench.vercel.app . The Vercel project is linked to the GitHub repo, so every push to `main` redeploys production. The three `VITE_*` variables above are set in the Vercel project for Production and Preview.
 
-Use email confirmation links for the first implementation. For production, configure Auth Site URL, Redirect URLs, email templates, and Custom SMTP before opening registration to real users.
+## Accounts
 
-Detailed checklist: `docs/auth-email.md`.
+Each weekly god signs up with a nickname (花名) and a password; there is no email and no confirmation. The `god-workbench-signup` Edge Function (`supabase/functions/god-workbench-signup`) creates the user with the service role, already confirmed, under a synthetic address `gw-<hex of lowercased name>@users.god-workbench.local` that is never mailed; the client then signs in with the same derived address. The derivation lives in both the function and `cloud.js` and must stay identical.
+
+Email confirmation stays on at the project level on purpose: the Glimmer Supabase project also hosts other apps, and that switch is project-wide.
+
+Deploy the function:
+
+```bash
+supabase functions deploy god-workbench-signup --project-ref pwbbimvwfrpljjjdzmbn --no-verify-jwt --use-api
+```
+
+A nickname account that forgets its password can only be reset from the Supabase dashboard.
+
+Only the admin account (user id in `ROSTER_ADMIN_USER_IDS` in `cloud.js` and in the roster RLS migration) can create or update the shared member roster. Other accounts see it read-only.
 
 ## Build
 

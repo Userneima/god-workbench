@@ -11,6 +11,36 @@ const getCloudConfig = () => ({
     documentId: import.meta.env.VITE_GOD_WORKBENCH_DOCUMENT_ID || DEFAULT_DOCUMENT_ID
 });
 
+// Nickname accounts: gods sign up with a 花名 instead of an email. The name
+// maps to a synthetic address that is never mailed. Keep in sync with
+// supabase/functions/god-workbench-signup/index.ts.
+const ACCOUNT_EMAIL_DOMAIN = "users.god-workbench.local";
+
+// Only this account may edit the shared member roster (enforced by RLS).
+export const ROSTER_ADMIN_USER_IDS = ["905df538-3907-40ad-929f-2561af837724"];
+
+export const accountEmailFromName = (name) => {
+    const bytes = new TextEncoder().encode(String(name || "").trim().toLowerCase());
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `gw-${hex}@${ACCOUNT_EMAIL_DOMAIN}`;
+};
+
+export const isNicknameAccountEmail = (email) => String(email || "").endsWith(`@${ACCOUNT_EMAIL_DOMAIN}`);
+
+export const accountLabelFromUser = (user) => {
+    const email = String(user?.email || "");
+    if (!isNicknameAccountEmail(email)) {
+        return email;
+    }
+    return String(user?.user_metadata?.display_name || "").trim() || email;
+};
+
+// "Carol" signs in as a nickname account; anything with "@" is a regular email account.
+export const loginEmailFromIdentifier = (identifier) => {
+    const value = String(identifier || "").trim();
+    return value.includes("@") ? value : accountEmailFromName(value);
+};
+
 const getAuthRedirectTo = () => {
     if (typeof window === "undefined") {
         return undefined;
@@ -183,22 +213,24 @@ export const createCloudSyncClient = () => {
 
     return {
         signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
+        signUpWithName: async (name, password) => {
+            const response = await fetch(`${config.url}/functions/v1/god-workbench-signup`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", apikey: config.key },
+                body: JSON.stringify({ name, password })
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                return { error: { message: body.error || "signup_failed" } };
+            }
+            return supabase.auth.signInWithPassword({ email: accountEmailFromName(name), password });
+        },
         signUp: (email, password) => supabase.auth.signUp({
             email,
             password,
             options: {
                 emailRedirectTo: getAuthRedirectTo()
             }
-        }),
-        resendSignupConfirmation: (email) => supabase.auth.resend({
-            type: "signup",
-            email,
-            options: {
-                emailRedirectTo: getAuthRedirectTo()
-            }
-        }),
-        resetPassword: (email) => supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: getAuthRedirectTo()
         }),
         updatePassword: (password) => supabase.auth.updateUser({ password }),
         signOut: () => supabase.auth.signOut(),

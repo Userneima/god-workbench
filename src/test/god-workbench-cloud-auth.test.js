@@ -128,43 +128,75 @@ describe("god workbench cloud auth", () => {
         return root;
     };
 
-    it("shows confirmation guidance and allows resending signup email", async () => {
+    it("signs up with a nickname through the signup function and logs straight in", async () => {
+        const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ ok: true }) }));
+        vi.stubGlobal("fetch", fetchMock);
+        supabaseMock.auth.signInWithPassword.mockResolvedValue({
+            data: { session: { user: { id: "u2", email: "x@users.god-workbench.local", user_metadata: { display_name: "Carol" } } } },
+            error: null
+        });
         const root = await mountWorkbench();
         expect(root.querySelector('[data-top-menu="cloud"]').textContent).toContain("登录同步");
-        expect(root.querySelector('[data-top-menu="cloud"]').textContent).toContain("本地草稿");
         const form = root.querySelector("[data-form='cloud-auth']");
 
-        form.elements.email.value = "host@example.com";
+        form.elements.account.value = "Carol";
         form.elements.password.value = "secret123";
         form.requestSubmit(form.querySelector("[data-auth-mode='sign-up']"));
         await flushPromises();
-
-        expect(root.textContent).toContain("检查邮箱或直接登录");
-        expect(root.textContent).toContain("可能已注册过");
-        expect(root.textContent).toContain("重发确认");
-
-        root.querySelector("[data-action='resend-confirmation']").click();
         await flushPromises();
 
-        expect(supabaseMock.auth.resend).toHaveBeenCalledWith(expect.objectContaining({
-            type: "signup",
-            email: "host@example.com"
-        }));
+        expect(fetchMock).toHaveBeenCalledWith(
+            "https://example.supabase.co/functions/v1/god-workbench-signup",
+            expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "Carol", password: "secret123" }) })
+        );
+        expect(supabaseMock.auth.signInWithPassword).toHaveBeenCalledWith({
+            email: "gw-6361726f6c@users.god-workbench.local",
+            password: "secret123"
+        });
+        expect(supabaseMock.auth.signUp).not.toHaveBeenCalled();
+        expect(root.querySelector('[data-top-menu="cloud"]').textContent).toContain("Carol");
+        vi.unstubAllGlobals();
     });
 
-    it("sends password reset email from the auth panel", async () => {
+    it("signs in with a nickname or an email", async () => {
         const root = await mountWorkbench();
-        const form = root.querySelector("[data-form='cloud-auth']");
+        let form = root.querySelector("[data-form='cloud-auth']");
+        form.elements.account.value = "  CAROL ";
+        form.elements.password.value = "secret123";
+        form.requestSubmit(form.querySelector("[data-auth-mode='sign-in']"));
+        await flushPromises();
+        expect(supabaseMock.auth.signInWithPassword).toHaveBeenLastCalledWith({
+            email: "gw-6361726f6c@users.god-workbench.local",
+            password: "secret123"
+        });
 
-        form.elements.email.value = "host@example.com";
-        root.querySelector("[data-action='send-password-reset']").click();
+        form = root.querySelector("[data-form='cloud-auth']");
+        form.elements.account.value = "host@example.com";
+        form.elements.password.value = "secret123";
+        form.requestSubmit(form.querySelector("[data-auth-mode='sign-in']"));
+        await flushPromises();
+        expect(supabaseMock.auth.signInWithPassword).toHaveBeenLastCalledWith({
+            email: "host@example.com",
+            password: "secret123"
+        });
+    });
+
+    it("shows the member roster read-only to non-admin accounts", async () => {
+        supabaseMock.state.remoteRoster = {
+            participants: [{ id: "p_cloud_1", name: "云端成员" }],
+            updated_at: "2026-06-14T08:00:00.000Z"
+        };
+        supabaseMock.auth.getSession.mockResolvedValue({
+            data: { session: { user: { id: "u1", email: "host@example.com" } } },
+            error: null
+        });
+
+        const root = await mountWorkbench();
         await flushPromises();
 
-        expect(supabaseMock.auth.resetPasswordForEmail).toHaveBeenCalledWith(
-            "host@example.com",
-            expect.objectContaining({ redirectTo: "http://localhost:3000/" })
-        );
-        expect(root.textContent).toContain("重置邮件已发送");
+        expect(root.textContent).toContain("云端成员");
+        expect(root.querySelector("[data-form='participant']")).toBeNull();
+        expect(root.querySelector("[data-action='remove-participant']")).toBeNull();
     });
 
     it("asks before replacing a different local draft with the cloud draft", async () => {
@@ -230,7 +262,7 @@ describe("god workbench cloud auth", () => {
     it("uploads the local member roster when the shared cloud roster is empty", async () => {
         saveMemberRoster([{ id: "p_local_1", name: "本地成员" }]);
         supabaseMock.auth.getSession.mockResolvedValue({
-            data: { session: { user: { id: "u1", email: "host@example.com" } } },
+            data: { session: { user: { id: "905df538-3907-40ad-929f-2561af837724", email: "host@example.com" } } },
             error: null
         });
 
