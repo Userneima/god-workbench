@@ -85,7 +85,10 @@ const createConflictChoiceState = () => ({
 });
 
 describe("god workbench", () => {
-    beforeEach(() => window.localStorage.clear());
+    beforeEach(() => {
+        window.localStorage.clear();
+        window.confirm = vi.fn(() => true);
+    });
 
     it("renders the host flow sections", () => {
         const root = mountSampleWorkbench();
@@ -431,6 +434,64 @@ describe("god workbench", () => {
         const blockedState = selectWishForCurrentAngel(state, "w2");
         expect(blockedState.assignments).toEqual([{ angelId: "p2", wishId: "w3" }]);
         expect(blockedState.toast).toBe("会导致冲突");
+    });
+
+    it("asks before reset and keeps the choices when the host cancels", () => {
+        const state = {
+            ...createInitialWorkbenchState(),
+            round: { ...createInitialWorkbenchState().round, theme: "测试" },
+            participants: [{ id: "p1", name: "白榆" }, { id: "p2", name: "北桥" }, { id: "p3", name: "小满" }],
+            wishes: [
+                { id: "w1", ownerId: "p1", body: "想收到一份小惊喜", status: "approved" },
+                { id: "w2", ownerId: "p2", body: "想有人陪我散步", status: "approved" },
+                { id: "w3", ownerId: "p3", body: "想收到一段歌单", status: "approved" }
+            ],
+            selectionOrder: ["p1", "p2", "p3"],
+            activeSelectionIndex: 1,
+            assignments: [{ angelId: "p1", wishId: "w2" }],
+            completionByParticipantId: {}
+        };
+        saveWorkbenchState(state);
+        window.confirm = vi.fn(() => false);
+        const root = mountWorkbench();
+        root.querySelector('[data-action="reset-selection"]').click();
+        expect(window.confirm).toHaveBeenCalled();
+        expect(loadWorkbenchState().assignments).toEqual([{ angelId: "p1", wishId: "w2" }]);
+    });
+
+    it("shows the text for manual copying when the browser blocks the clipboard", async () => {
+        saveWorkbenchState({
+            ...createInitialWorkbenchState(),
+            round: { ...createInitialWorkbenchState().round, god: "白榆", theme: "测试" },
+            participants: [{ id: "p1", name: "白榆" }, { id: "p2", name: "北桥" }, { id: "p3", name: "小满" }]
+        });
+        Object.defineProperty(navigator, "clipboard", { value: { writeText: vi.fn(async () => { throw new Error("denied"); }) }, configurable: true });
+        document.execCommand = vi.fn(() => false);
+        const root = mountWorkbench();
+        root.querySelector('[data-action="copy-single-wish-reminder"]').click();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        const overlay = document.querySelector(".god-workbench-manual-copy");
+        expect(overlay).not.toBeNull();
+        expect(overlay.querySelector("textarea").value).toContain("测试");
+        overlay.remove();
+    });
+
+    it("moves focus to the next player without a wish after recording one", () => {
+        saveWorkbenchState({
+            ...createInitialWorkbenchState(),
+            round: { ...createInitialWorkbenchState().round, god: "白榆", theme: "测试" },
+            participants: [{ id: "p1", name: "白榆" }, { id: "p2", name: "北桥" }, { id: "p3", name: "小满" }, { id: "p4", name: "林舟" }]
+        });
+        const root = mountWorkbench();
+        document.body.append(root);
+        const firstForm = root.querySelector('.god-workbench__wish-row.is-empty form[data-form="wish"]');
+        const firstOwner = firstForm.elements.ownerId.value;
+        firstForm.elements.body.value = "想喝奶茶";
+        firstForm.requestSubmit();
+        const focusedRow = document.activeElement.closest(".god-workbench__wish-row");
+        expect(focusedRow.classList.contains("is-empty")).toBe(true);
+        expect(focusedRow.querySelector('input[name="ownerId"]').value).not.toBe(firstOwner);
+        root.remove();
     });
 
     it("keeps recovery controls visible when completed selection still has unassigned wishes", () => {

@@ -34,7 +34,10 @@ const createCompletedRound = () => {
 };
 
 describe("god workbench archive", () => {
-    beforeEach(() => window.localStorage.clear());
+    beforeEach(() => {
+        window.localStorage.clear();
+        window.confirm = vi.fn(() => true);
+    });
 
     it("archives the completed round from the reveal panel", () => {
         saveWorkbenchState(createCompletedRound());

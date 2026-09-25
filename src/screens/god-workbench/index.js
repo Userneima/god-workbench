@@ -56,8 +56,12 @@ export {
 
 const copyText = async (text) => {
     if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        return;
+        try {
+            await navigator.clipboard.writeText(text);
+            return;
+        } catch {
+            // Some in-app browsers (WeChat) reject the async clipboard; fall back below.
+        }
     }
 
     const textarea = document.createElement("textarea");
@@ -67,8 +71,51 @@ const copyText = async (text) => {
     textarea.style.opacity = "0";
     document.body.append(textarea);
     textarea.select();
-    document.execCommand("copy");
+    const copied = document.execCommand("copy");
     textarea.remove();
+    if (!copied) {
+        throw new Error("copy_failed");
+    }
+};
+
+// When the browser refuses clipboard access, show the text so it can be long-pressed and copied by hand.
+const showManualCopy = (text) => {
+    document.querySelector(".god-workbench-manual-copy")?.remove();
+    const overlay = document.createElement("div");
+    overlay.className = "god-workbench-manual-copy";
+    overlay.innerHTML = `
+        <div class="god-workbench-manual-copy__panel" role="dialog" aria-label="手动复制">
+            <strong>这个浏览器不让自动复制，长按下面的文字复制</strong>
+            <textarea readonly></textarea>
+            <button type="button">关闭</button>
+        </div>
+    `;
+    const textarea = overlay.querySelector("textarea");
+    textarea.value = text;
+    overlay.querySelector("button").addEventListener("click", () => overlay.remove());
+    overlay.addEventListener("click", (event) => {
+        if (event.target === overlay) overlay.remove();
+    });
+    document.body.append(overlay);
+    textarea.focus();
+    textarea.select();
+};
+
+// Short-lived confirmation pinned to the bottom of the screen. The top-bar status is hidden on phones.
+let flashTimer = 0;
+const flashMessage = (message) => {
+    let flash = document.querySelector(".god-workbench-flash");
+    if (!flash) {
+        flash = document.createElement("div");
+        flash.className = "god-workbench-flash";
+        flash.setAttribute("role", "status");
+        flash.setAttribute("aria-live", "polite");
+        document.body.append(flash);
+    }
+    flash.textContent = message;
+    flash.classList.add("is-visible");
+    window.clearTimeout(flashTimer);
+    flashTimer = window.setTimeout(() => flash.classList.remove("is-visible"), 1800);
 };
 
 const resizeWishTextarea = (textarea) => {
@@ -384,10 +431,6 @@ const renderThemeKickoff = (state) => `
                     <label class="god-workbench__setting-field">
                         <span>轮次</span>
                         <input value="${escapeHtml(state.round.code || "")}" data-input="round" data-field="code" placeholder="01" />
-                    </label>
-                    <label class="god-workbench__setting-field">
-                        <span>上帝</span>
-                        ${renderGodSelect(state)}
                     </label>
                     <label class="god-workbench__setting-field">
                         <span>本周主题</span>
@@ -1037,6 +1080,32 @@ export const mountGodWorkbenchPage = ({ root }) => {
             ...nextStatus
         };
         renderNow();
+        if (nextStatus.state === "synced" && !cloudHydrating) {
+            fillRoundDefaults();
+        }
+    };
+
+    // Only touches an untouched draft, so it never fights a draft the god already started.
+    const fillRoundDefaults = () => {
+        const isFreshDraft = !state.round.god && !state.round.theme && !state.wishes.length && !state.assignments.length;
+        if (!isFreshDraft) {
+            return;
+        }
+        let next = state;
+        const accountName = String(cloudStatus.email || "").trim().toLowerCase();
+        const accountParticipant = accountName && state.participants.find((participant) => participant.name.trim().toLowerCase() === accountName);
+        if (accountParticipant) {
+            next = updateRoundField(next, "god", accountParticipant.name);
+        }
+        const publishedRounds = publicArchives
+            .map((archive) => Number.parseInt(archive.roundId, 10))
+            .filter((value) => Number.isFinite(value));
+        if (publishedRounds.length && String(state.round.code || "").trim() === "01") {
+            next = updateRoundField(next, "code", String(Math.max(...publishedRounds) + 1).padStart(2, "0"));
+        }
+        if (next !== state) {
+            setState(next);
+        }
     };
 
     const setPublicArchiveStatus = (nextStatus) => {
@@ -1127,6 +1196,7 @@ export const mountGodWorkbenchPage = ({ root }) => {
         try {
             publicArchives = await cloudClient.loadPublicArchives();
             setPublicArchiveStatus({ state: "ready", label: "公开归档已读取" });
+            fillRoundDefaults();
         } catch {
             setPublicArchiveStatus({ state: "error", label: "公开归档读取失败" });
         }
@@ -1285,6 +1355,9 @@ export const mountGodWorkbenchPage = ({ root }) => {
             setCloudStatus({ state: "error", label: "云端同步失败", message: detail.message });
         } finally {
             cloudHydrating = false;
+            if (cloudStatus.state === "synced") {
+                fillRoundDefaults();
+            }
         }
     };
 
@@ -1462,10 +1535,18 @@ export const mountGodWorkbenchPage = ({ root }) => {
             addParticipantsFromText(formData.get("name"));
         }
         if (form.dataset.form === "wish") {
+            const wasNewWish = !state.wishes.some((wish) => wish.ownerId === formData.get("ownerId"));
             setState(addWish(state, {
                 ownerId: formData.get("ownerId"),
                 body: formData.get("body")
             }));
+            if (wasNewWish) {
+                const nextEmpty = root.querySelector(".god-workbench__wish-row.is-empty textarea[name='body']");
+                if (nextEmpty) {
+                    nextEmpty.focus({ preventScroll: true });
+                    nextEmpty.scrollIntoView?.({ block: "nearest" });
+                }
+            }
         }
     });
 
@@ -1515,11 +1596,11 @@ export const mountGodWorkbenchPage = ({ root }) => {
             setState(selectWishForCurrentAngel(state, wishId));
         }
         if (action === "undo-selection") setState(removeAssignment(state, state.assignments.at(-1)?.angelId));
-        if (action === "reset-selection") setState(resetSelection(state));
+        if (action === "reset-selection" && window.confirm("清空这一轮已经记录的所有选择？")) setState(resetSelection(state));
         if (action === "set-completion") setState(setCompletionStatus(state, participantId, trigger.dataset.status));
         if (action === "archive-round") void publishCurrentArchive();
         if (action === "restore-archive") setState(restoreArchivedRound(state, archiveId));
-        if (action === "new-round") {
+        if (action === "new-round" && window.confirm("开新一轮会清空当前的主题、愿望和选择，本轮会先存进本地归档。继续？")) {
             setState(startNewRound(archiveCurrentRound(state)));
         }
         if (action === "export-backup") {
@@ -1555,15 +1636,32 @@ export const mountGodWorkbenchPage = ({ root }) => {
             "copy-completion-followup": [buildCompletionFollowup(state), "已复制提醒"]
         };
         if (copyActions[action]) {
-            void copyText(copyActions[action][0]).then(() => setState({ ...state, toast: copyActions[action][1] }));
+            void copyText(copyActions[action][0])
+                .then(() => {
+                    flashMessage(copyActions[action][1]);
+                    setState({ ...state, toast: copyActions[action][1] });
+                })
+                .catch(() => showManualCopy(copyActions[action][0]));
         }
         if (action === "copy-single-wish-reminder") {
-            void copyText(buildSingleWishReminder(state, participantId)).then(() => setState({ ...state, toast: "已复制催愿望" }));
+            const reminderText = buildSingleWishReminder(state, participantId);
+            void copyText(reminderText)
+                .then(() => {
+                    flashMessage("已复制催愿望");
+                    setState({ ...state, toast: "已复制催愿望" });
+                })
+                .catch(() => showManualCopy(reminderText));
         }
         if (action === "export-reveal-png") {
             void downloadRevealPng(`king-angel-${state.round.code}-reveal.png`, state)
-                .then(() => setState({ ...state, toast: "已导出 PNG" }))
-                .catch(() => setState({ ...state, toast: "图片导出失败" }));
+                .then(() => {
+                    flashMessage("已导出图片");
+                    setState({ ...state, toast: "已导出 PNG" });
+                })
+                .catch(() => {
+                    flashMessage("图片导出失败");
+                    setState({ ...state, toast: "图片导出失败" });
+                });
         }
         const exportActions = {
             "export-csv": [`king-angel-${state.round.code}.csv`, buildRevealCsv(state), "text/csv;charset=utf-8", "已导出"]

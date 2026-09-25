@@ -193,6 +193,28 @@ describe("god workbench cloud auth", () => {
         expect(form.elements.password.type).toBe("password");
     });
 
+    it("fills in the god from the signed-in nickname and the round number from published archives", async () => {
+        supabaseMock.state.remoteRoster = {
+            participants: [{ id: "p_1", name: "Carol" }, { id: "p_2", name: "Lana" }, { id: "p_3", name: "Jamie" }],
+            updated_at: "2026-09-25T08:00:00.000Z"
+        };
+        supabaseMock.state.publicArchives = [
+            { archive_id: "a2", round_id: "02", round_label: "第 02 轮", theme: "甜", god_name: "Lana", reveal_rows: [], completion_rows: [] },
+            { archive_id: "a1", round_id: "01", round_label: "第 01 轮", theme: "辣", god_name: "Jamie", reveal_rows: [], completion_rows: [] }
+        ];
+        supabaseMock.auth.getSession.mockResolvedValue({
+            data: { session: { user: { id: "u3", email: "gw-6361726f6c@users.god-workbench.local", user_metadata: { display_name: "carol" } } } },
+            error: null
+        });
+
+        await mountWorkbench();
+        await flushPromises();
+        await flushPromises();
+
+        expect(loadWorkbenchState().round.god).toBe("Carol");
+        expect(loadWorkbenchState().round.code).toBe("03");
+    });
+
     it("shows the member roster read-only to non-admin accounts", async () => {
         supabaseMock.state.remoteRoster = {
             participants: [{ id: "p_cloud_1", name: "云端成员" }],
